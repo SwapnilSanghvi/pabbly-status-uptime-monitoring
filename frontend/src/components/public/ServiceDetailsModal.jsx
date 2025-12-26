@@ -18,6 +18,18 @@ export default function ServiceDetailsModal({ service, isOpen, onClose }) {
     }
   }, [isOpen, service, timeRange]);
 
+  // Prevent body scroll when modal is open
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, [isOpen]);
+
   const fetchPingLogs = async () => {
     setLoading(true);
     try {
@@ -120,18 +132,17 @@ export default function ServiceDetailsModal({ service, isOpen, onClose }) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto">
+    <div className="fixed inset-0 z-50 overflow-y-auto" onClick={onClose}>
       <div className="flex min-h-screen items-center justify-center p-4">
         {/* Backdrop */}
         <div
           className="fixed inset-0 bg-black bg-opacity-50 transition-opacity"
-          onClick={onClose}
         ></div>
 
         {/* Modal */}
-        <div className="relative bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-hidden">
+        <div className="relative bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
           {/* Header */}
-          <div className="flex items-center justify-between p-6 border-b">
+          <div className="flex items-center justify-between p-6 border-b flex-shrink-0">
             <div>
               <h3 className="text-2xl font-semibold text-gray-900">{service.name}</h3>
               <p className="text-sm text-gray-500 mt-1">{service.url}</p>
@@ -147,7 +158,7 @@ export default function ServiceDetailsModal({ service, isOpen, onClose }) {
           </div>
 
           {/* Stats Summary */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 p-6 bg-gray-50 border-b">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 p-6 bg-gray-50 border-b flex-shrink-0">
             <div className="text-center">
               <p className="text-xs sm:text-sm text-gray-600 mb-1">Uptime ({timeRange})</p>
               <p className="text-xl sm:text-2xl font-bold text-gray-900">{uptimePercent}%</p>
@@ -167,7 +178,7 @@ export default function ServiceDetailsModal({ service, isOpen, onClose }) {
           </div>
 
           {/* Time Range Selector */}
-          <div className="p-4 border-b">
+          <div className="p-4 border-b flex-shrink-0">
             <h4 className="text-lg font-semibold text-gray-900 mb-3">Ping History</h4>
             <div className="flex gap-2 flex-wrap">
               {['24h', '7d', '90d'].map((range) => {
@@ -194,7 +205,7 @@ export default function ServiceDetailsModal({ service, isOpen, onClose }) {
           </div>
 
           {/* Visual Timeline */}
-          <div className="p-6">
+          <div className="p-6 overflow-y-auto flex-1">
             {loading ? (
               <div className="text-center py-8">
                 <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
@@ -327,13 +338,13 @@ export default function ServiceDetailsModal({ service, isOpen, onClose }) {
           </div>
 
           {/* Footer */}
-          <div className="flex justify-between items-center p-4 border-t bg-gray-50">
-            <p className="text-xs text-gray-500">
+          <div className="flex justify-between items-center p-4 border-t bg-gray-50 flex-shrink-0">
+            <p className="text-xs text-gray-500 hidden sm:block">
               Showing minute-level ping data • Updates every minute
             </p>
             <button
               onClick={onClose}
-              className="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300"
+              className="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 ml-auto"
             >
               Close
             </button>
