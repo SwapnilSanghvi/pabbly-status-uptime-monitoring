@@ -1,0 +1,31 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(powershell \"Get-ChildItem -Force -Hidden\")",
+      "Bash(git config:*)",
+      "Bash(npm install)",
+      "Bash(timeout 10 npm run migrate:*)",
+      "Bash(psql:*)",
+      "Bash(node:*)",
+      "Bash(timeout 5 npm run dev)",
+      "Bash(curl:*)",
+      "Bash(netstat:*)",
+      "Bash(findstr:*)",
+      "Bash(taskkill /F /PID 30252)",
+      "Bash(taskkill:*)",
+      "Bash(timeout 15 npm run dev:*)",
+      "Bash(npm create:*)",
+      "Bash(npm install:*)",
+      "Bash(npx tailwindcss:*)",
+      "Bash(npm uninstall:*)",
+      "Bash(timeout:*)",
+      "Bash(npm run dev:*)",
+      "Bash(python -m json.tool:*)",
+      "Bash(del check-incidents.js)",
+      "Bash(dir /s /b \"c:\\\\Users\\\\Magnet Brains\\\\Desktop\\\\exp\\\\status-monitor\\\\frontend\")",
+      "Bash(dir:*)",
+      "Bash(copy:*)",
+      "Bash(if not exist \"README.md\" echo.)"
+    ]
+  }
+}

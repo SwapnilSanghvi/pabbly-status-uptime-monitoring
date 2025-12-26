@@ -1,0 +1,295 @@
+import pool from '../config/database.js';
+
+/**
+ * Webhook Service
+ * Handles sending webhooks for API status changes and logging delivery attempts
+ */
+
+/**
+ * Build consistent webhook payload structure
+ * @param {string} eventType - 'api_down' or 'api_up'
+ * @param {object} api - API object with id, name, url, etc.
+ * @param {object} incident - Incident object with details
+ * @returns {object} Webhook payload
+ */
+function buildWebhookPayload(eventType, api, incident) {
+  const status = eventType === 'api_down' ? 'down' : 'up';
+
+  // Calculate downtime in minutes if incident is resolved
+  let downtimeMinutes = null;
+  if (incident.resolved_at && incident.started_at) {
+    const start = new Date(incident.started_at);
+    const end = new Date(incident.resolved_at);
+    downtimeMinutes = Math.round((end - start) / 60000);
+  }
+
+  return {
+    event_type: eventType,
+    status: status,
+    timestamp: new Date().toISOString(),
+    api: {
+      id: api.id,
+      name: api.name,
+      url: api.url,
+      monitoring_interval: api.monitoring_interval,
+      expected_status_code: api.expected_status_code
+    },
+    incident: {
+      id: incident.id,
+      title: incident.title,
+      description: incident.description,
+      status: incident.status,
+      started_at: incident.started_at,
+      resolved_at: incident.resolved_at || null,
+      ...(downtimeMinutes !== null && { downtime_minutes: downtimeMinutes })
+    }
+  };
+}
+
+/**
+ * Log webhook delivery attempt to database
+ * @param {string} webhookUrl - URL where webhook was sent
+ * @param {string} eventType - Event type (api_down/api_up)
+ * @param {number} apiId - API ID
+ * @param {number} incidentId - Incident ID
+ * @param {object} payload - Webhook payload
+ * @param {boolean} success - Whether delivery succeeded
+ * @param {number|null} statusCode - HTTP status code
+ * @param {string|null} errorMessage - Error message if failed
+ * @param {number} responseTime - Response time in milliseconds
+ */
+async function logWebhookDelivery(webhookUrl, eventType, apiId, incidentId, payload, success, statusCode, errorMessage, responseTime) {
+  try {
+    await pool.query(
+      `INSERT INTO webhook_logs
+       (webhook_url, event_type, api_id, incident_id, payload, success, status_code, error_message, response_time)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+      [webhookUrl, eventType, apiId, incidentId, payload, success, statusCode, errorMessage, responseTime]
+    );
+  } catch (error) {
+    console.error('Failed to log webhook delivery:', error);
+  }
+}
+
+/**
+ * Send webhook notification
+ * Fire-and-forget async function - does not block incident processing
+ * @param {string} eventType - 'api_down' or 'api_up'
+ * @param {object} api - API object
+ * @param {object} incident - Incident object
+ */
+export async function sendWebhook(eventType, api, incident) {
+  // Execute webhook asynchronously without blocking
+  setImmediate(async () => {
+    const startTime = Date.now();
+    let success = false;
+    let statusCode = null;
+    let errorMessage = null;
+
+    try {
+      // Get webhook settings
+      const settingsResult = await pool.query(
+        'SELECT webhook_url, webhook_enabled FROM system_settings WHERE id = 1'
+      );
+
+      if (!settingsResult.rows.length) {
+        console.log('No system settings found, skipping webhook');
+        return;
+      }
+
+      const { webhook_url, webhook_enabled } = settingsResult.rows[0];
+
+      // Check if webhooks are enabled and URL is configured
+      if (!webhook_enabled) {
+        console.log('Webhooks disabled, skipping');
+        return;
+      }
+
+      if (!webhook_url || webhook_url.trim() === '') {
+        console.log('Webhook URL not configured, skipping');
+        return;
+      }
+
+      // Build payload
+      const payload = buildWebhookPayload(eventType, api, incident);
+
+      console.log(`Sending webhook: ${eventType} for API ${api.name} to ${webhook_url}`);
+
+      // Send webhook with 10-second timeout
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000);
+
+      const response = await fetch(webhook_url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'User-Agent': 'Pabbly-Status-Monitor/1.0'
+        },
+        body: JSON.stringify(payload),
+        signal: controller.signal
+      });
+
+      clearTimeout(timeoutId);
+
+      statusCode = response.status;
+      success = response.ok;
+
+      if (!response.ok) {
+        const responseText = await response.text();
+        errorMessage = `HTTP ${statusCode}: ${responseText.substring(0, 500)}`;
+        console.error(`Webhook delivery failed: ${errorMessage}`);
+      } else {
+        console.log(`Webhook delivered successfully: ${eventType} for ${api.name}`);
+      }
+
+      const responseTime = Date.now() - startTime;
+
+      // Log delivery attempt
+      await logWebhookDelivery(
+        webhook_url,
+        eventType,
+        api.id,
+        incident.id,
+        payload,
+        success,
+        statusCode,
+        errorMessage,
+        responseTime
+      );
+
+    } catch (error) {
+      const responseTime = Date.now() - startTime;
+      errorMessage = error.message;
+
+      if (error.name === 'AbortError') {
+        errorMessage = 'Request timeout after 10 seconds';
+      }
+
+      console.error(`Webhook error for ${eventType}:`, errorMessage);
+
+      // Try to get webhook URL for logging
+      try {
+        const settingsResult = await pool.query(
+          'SELECT webhook_url FROM system_settings WHERE id = 1'
+        );
+        const webhook_url = settingsResult.rows[0]?.webhook_url || 'unknown';
+
+        // Build payload for logging (even if webhook failed)
+        const payload = buildWebhookPayload(eventType, api, incident);
+
+        await logWebhookDelivery(
+          webhook_url,
+          eventType,
+          api.id,
+          incident.id,
+          payload,
+          false,
+          null,
+          errorMessage,
+          responseTime
+        );
+      } catch (logError) {
+        console.error('Failed to log webhook failure:', logError);
+      }
+    }
+  });
+}
+
+/**
+ * Send test webhook
+ * @returns {object} Result with success status and details
+ */
+export async function testWebhook() {
+  const startTime = Date.now();
+
+  try {
+    // Get webhook settings
+    const settingsResult = await pool.query(
+      'SELECT webhook_url, webhook_enabled FROM system_settings WHERE id = 1'
+    );
+
+    if (!settingsResult.rows.length) {
+      return { success: false, message: 'System settings not found' };
+    }
+
+    const { webhook_url, webhook_enabled } = settingsResult.rows[0];
+
+    if (!webhook_url || webhook_url.trim() === '') {
+      return { success: false, message: 'Webhook URL not configured' };
+    }
+
+    // Build test payload
+    const testPayload = {
+      event_type: 'test',
+      status: 'test',
+      timestamp: new Date().toISOString(),
+      message: 'This is a test webhook from Pabbly Status Monitor',
+      api: {
+        id: 0,
+        name: 'Test API',
+        url: 'https://example.com/test',
+        monitoring_interval: 60,
+        expected_status_code: 200
+      },
+      incident: {
+        id: 0,
+        title: 'Test Incident',
+        description: 'This is a test incident for webhook configuration',
+        status: 'test',
+        started_at: new Date().toISOString(),
+        resolved_at: null
+      }
+    };
+
+    // Send test webhook with 10-second timeout
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000);
+
+    const response = await fetch(webhook_url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'User-Agent': 'Pabbly-Status-Monitor/1.0'
+      },
+      body: JSON.stringify(testPayload),
+      signal: controller.signal
+    });
+
+    clearTimeout(timeoutId);
+
+    const responseTime = Date.now() - startTime;
+
+    if (response.ok) {
+      return {
+        success: true,
+        message: `Test webhook sent successfully (${responseTime}ms)`,
+        statusCode: response.status,
+        responseTime
+      };
+    } else {
+      const responseText = await response.text();
+      return {
+        success: false,
+        message: `Webhook endpoint returned HTTP ${response.status}`,
+        statusCode: response.status,
+        error: responseText.substring(0, 500),
+        responseTime
+      };
+    }
+
+  } catch (error) {
+    const responseTime = Date.now() - startTime;
+    let errorMessage = error.message;
+
+    if (error.name === 'AbortError') {
+      errorMessage = 'Request timeout after 10 seconds';
+    }
+
+    return {
+      success: false,
+      message: 'Failed to send test webhook',
+      error: errorMessage,
+      responseTime
+    };
+  }
+}

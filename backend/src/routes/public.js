@@ -1,0 +1,45 @@
+import express from 'express';
+import {
+  getOverallStatus,
+  getServices,
+  getUptimeStats,
+  getRecentIncidents,
+  getTimeline,
+  getResponseTimes,
+  getPingLogs,
+  getAggregatedPingLogs,
+  getDrillDownPingLogs,
+} from '../controllers/publicController.js';
+
+const router = express.Router();
+
+// All public routes - no authentication required
+
+// Get overall system status
+router.get('/status', getOverallStatus);
+
+// Get list of all services
+router.get('/services', getServices);
+
+// Get uptime statistics
+router.get('/uptime', getUptimeStats);
+
+// Get recent incidents
+router.get('/incidents', getRecentIncidents);
+
+// Get 90-day timeline data
+router.get('/timeline', getTimeline);
+
+// Get response time data for charts
+router.get('/response-times', getResponseTimes);
+
+// Get ping logs for a specific API
+router.get('/ping-logs/:apiId', getPingLogs);
+
+// Get aggregated ping logs for longer periods (7d, 90d)
+router.get('/ping-logs/:apiId/aggregated', getAggregatedPingLogs);
+
+// Get drill-down ping logs for a specific time period
+router.get('/ping-logs/:apiId/drill-down', getDrillDownPingLogs);
+
+export default router;
