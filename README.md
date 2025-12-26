@@ -99,9 +99,10 @@ LOG_RETENTION_DAYS=90
 FRONTEND_URL=http://localhost:5173
 ```
 
-## Deployment to Hetzner
+## Deployment
 
-See [DEPLOYMENT.md](DEPLOYMENT.md) for complete deployment guide.
+- **Initial Setup**: See [DEPLOYMENT.md](DEPLOYMENT.md) for complete manual deployment guide
+- **Automated Deployment**: See [AUTOMATED-DEPLOYMENT.md](AUTOMATED-DEPLOYMENT.md) for CI/CD and deployment automation
 
 ## License
 
