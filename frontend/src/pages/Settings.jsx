@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { getProfile, updateProfile, changePassword, getCurrentUser } from '../services/authService';
-import { getSettings, updateSettings } from '../services/adminService';
+import { getSettings, updateSettings, uploadLogo } from '../services/adminService';
 import Loading from '../components/shared/Loading';
 import toast from 'react-hot-toast';
 
@@ -34,7 +34,13 @@ export default function Settings() {
     notifications_enabled: false,
     webhook_url: '',
     webhook_enabled: false,
+    logo_url: '',
   });
+
+  // Logo Upload
+  const [logoFile, setLogoFile] = useState(null);
+  const [logoPreview, setLogoPreview] = useState(null);
+  const [uploadingLogo, setUploadingLogo] = useState(false);
 
   useEffect(() => {
     fetchData();
@@ -85,7 +91,15 @@ export default function Settings() {
           notifications_enabled: settingsRes.settings.notifications_enabled || false,
           webhook_url: settingsRes.settings.webhook_url || '',
           webhook_enabled: settingsRes.settings.webhook_enabled || false,
+          logo_url: settingsRes.settings.logo_url || '',
         });
+
+        // Set logo preview if logo exists
+        if (settingsRes.settings.logo_url) {
+          const apiBaseUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+          const baseUrl = apiBaseUrl.replace('/api', '');
+          setLogoPreview(baseUrl + settingsRes.settings.logo_url);
+        }
       }
 
       setLoading(false);
@@ -177,6 +191,69 @@ export default function Settings() {
     } finally {
       setSaving(false);
     }
+  };
+
+  const handleLogoChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      // Validate file type
+      const allowedTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/svg+xml'];
+      if (!allowedTypes.includes(file.type)) {
+        toast.error('Please select a PNG, JPG, JPEG, or SVG file');
+        return;
+      }
+
+      // Validate file size (2MB max)
+      if (file.size > 2 * 1024 * 1024) {
+        toast.error('File size must be less than 2MB');
+        return;
+      }
+
+      setLogoFile(file);
+
+      // Create preview
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setLogoPreview(reader.result);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleLogoUpload = async () => {
+    if (!logoFile) {
+      toast.error('Please select a logo file first');
+      return;
+    }
+
+    setUploadingLogo(true);
+
+    try {
+      const result = await uploadLogo(logoFile);
+      toast.success('Logo uploaded successfully');
+
+      // Update system settings with new logo URL
+      setSystemSettings({
+        ...systemSettings,
+        logo_url: result.logo_url,
+      });
+
+      // Clear the file input
+      setLogoFile(null);
+
+      // Refresh settings to get updated data
+      await fetchData();
+    } catch (error) {
+      console.error('Logo upload error:', error);
+      toast.error(error.response?.data?.message || 'Failed to upload logo');
+    } finally {
+      setUploadingLogo(false);
+    }
+  };
+
+  const handleLogoRemove = () => {
+    setLogoFile(null);
+    setLogoPreview(null);
   };
 
   const handleLogout = () => {
@@ -337,6 +414,62 @@ export default function Settings() {
               System Settings
             </h2>
             <form onSubmit={handleSystemSubmit} className="space-y-4">
+              {/* Logo Upload Section */}
+              <div className="border-b border-gray-200 pb-4 mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Custom Logo
+                </label>
+                <p className="text-sm text-gray-500 mb-3">
+                  Upload your custom logo (PNG, JPG, JPEG, or SVG, max 2MB)
+                </p>
+
+                {logoPreview && (
+                  <div className="mb-3">
+                    <div className="flex items-center gap-4">
+                      <div className="flex-shrink-0">
+                        <img
+                          src={logoPreview}
+                          alt="Logo preview"
+                          className="h-16 w-auto max-w-xs object-contain border border-gray-200 rounded p-2 bg-white"
+                        />
+                      </div>
+                      <button
+                        type="button"
+                        onClick={handleLogoRemove}
+                        className="text-sm text-red-600 hover:text-red-700"
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                <div className="flex items-center gap-3">
+                  <input
+                    type="file"
+                    id="logo"
+                    accept="image/png,image/jpeg,image/jpg,image/svg+xml"
+                    onChange={handleLogoChange}
+                    className="block w-full text-sm text-gray-500
+                      file:mr-4 file:py-2 file:px-4
+                      file:rounded-md file:border-0
+                      file:text-sm file:font-medium
+                      file:bg-blue-50 file:text-blue-700
+                      hover:file:bg-blue-100"
+                  />
+                  {logoFile && (
+                    <button
+                      type="button"
+                      onClick={handleLogoUpload}
+                      disabled={uploadingLogo}
+                      className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-50 whitespace-nowrap"
+                    >
+                      {uploadingLogo ? 'Uploading...' : 'Upload Logo'}
+                    </button>
+                  )}
+                </div>
+              </div>
+
               <div>
                 <label htmlFor="page_title" className="block text-sm font-medium text-gray-700 mb-1">
                   Status Page Title

@@ -22,8 +22,8 @@ Run the quick setup script:
 # Update system
 apt update && apt upgrade -y
 
-# Install Node.js 18
-curl -fsSL https://deb.nodesource.com/setup_18.x | bash -
+# Install Node.js 22.x LTS
+curl -fsSL https://deb.nodesource.com/setup_22.x | bash -
 apt install -y nodejs
 
 # Install PostgreSQL, Nginx, Git

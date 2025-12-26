@@ -725,6 +725,53 @@ export const updateSettings = async (req, res) => {
 };
 
 // ============================================
+// LOGO UPLOAD
+// ============================================
+
+export const uploadLogo = async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({
+        error: 'No file uploaded',
+        message: 'Please select a logo file to upload',
+      });
+    }
+
+    // Construct the URL path for the uploaded file
+    const logoUrl = `/uploads/${req.file.filename}`;
+
+    // Update the logo_url in system_settings
+    const result = await query(
+      `UPDATE system_settings
+       SET logo_url = $1, updated_at = CURRENT_TIMESTAMP
+       WHERE id = 1
+       RETURNING *`,
+      [logoUrl]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({
+        error: 'Settings not found',
+        message: 'System settings record not found',
+      });
+    }
+
+    res.json({
+      success: true,
+      message: 'Logo uploaded successfully',
+      logo_url: logoUrl,
+      settings: result.rows[0],
+    });
+  } catch (error) {
+    console.error('Upload logo error:', error);
+    res.status(500).json({
+      error: 'Server error',
+      message: 'Failed to upload logo',
+    });
+  }
+};
+
+// ============================================
 // WEBHOOKS
 // ============================================
 

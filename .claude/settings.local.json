@@ -25,7 +25,11 @@
       "Bash(dir /s /b \"c:\\\\Users\\\\Magnet Brains\\\\Desktop\\\\exp\\\\status-monitor\\\\frontend\")",
       "Bash(dir:*)",
       "Bash(copy:*)",
-      "Bash(if not exist \"README.md\" echo.)"
+      "Bash(if not exist \"README.md\" echo.)",
+      "Bash(git commit:*)",
+      "Bash(git branch:*)",
+      "Bash(git remote add:*)",
+      "Bash(git push:*)"
     ]
   }
 }

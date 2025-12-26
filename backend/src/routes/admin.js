@@ -17,8 +17,10 @@ import {
   updateSettings,
   getWebhookLogs,
   testWebhookEndpoint,
+  uploadLogo,
 } from '../controllers/adminController.js';
 import { authenticateToken } from '../middleware/auth.js';
+import upload from '../config/upload.js';
 
 const router = express.Router();
 
@@ -49,6 +51,9 @@ router.delete('/incidents/:id', deleteIncident);
 // Settings
 router.get('/settings', getSettings);
 router.put('/settings', updateSettings);
+
+// Logo Upload
+router.post('/upload-logo', upload.single('logo'), uploadLogo);
 
 // Webhooks
 router.get('/webhook-logs', getWebhookLogs);

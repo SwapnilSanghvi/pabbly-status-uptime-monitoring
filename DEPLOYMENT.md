@@ -24,11 +24,11 @@ apt update && apt upgrade -y
 
 ## Step 2: Install Required Software
 
-### 2.1 Install Node.js 18
+### 2.1 Install Node.js 22.x LTS
 ```bash
-curl -fsSL https://deb.nodesource.com/setup_18.x | bash -
+curl -fsSL https://deb.nodesource.com/setup_22.x | bash -
 apt install -y nodejs
-node --version  # Should show v18.x
+node --version  # Should show v22.x
 npm --version
 ```
 

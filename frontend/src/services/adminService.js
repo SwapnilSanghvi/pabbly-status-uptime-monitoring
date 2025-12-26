@@ -85,6 +85,18 @@ export const updateSettings = async (settingsData) => {
   return response.data;
 };
 
+export const uploadLogo = async (file) => {
+  const formData = new FormData();
+  formData.append('logo', file);
+
+  const response = await api.post('/admin/upload-logo', formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+  });
+  return response.data;
+};
+
 // Webhooks
 export const getWebhookLogs = async (limit = 50, offset = 0, apiId = null) => {
   const params = { limit, offset };

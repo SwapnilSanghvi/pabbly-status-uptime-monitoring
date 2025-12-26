@@ -102,18 +102,30 @@ function PublicStatusContent() {
       {/* Header */}
       <header className="bg-white shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          <div className="flex items-start justify-between">
-            <div className="flex-1">
-              <h1 className="text-3xl font-bold text-gray-900">
+          <div className="flex items-center justify-between">
+            <div>
+              {/* Logo and Title */}
+              {statusData.settings.logo_url && (
+                <img
+                  src={`${import.meta.env.VITE_API_URL.replace('/api', '')}${statusData.settings.logo_url}`}
+                  alt="Logo"
+                  className="h-10 w-auto object-contain mb-2"
+                />
+              )}
+              <h1 className="text-xl font-bold text-gray-900">
                 {statusData.settings.page_title || 'System Status'}
               </h1>
-              <div className="mt-1 flex items-center gap-3 text-sm text-gray-500">
-                <span>Last updated: <Timestamp timestamp={lastUpdated} format="full" /></span>
-                <span className="text-gray-300">|</span>
-                <div className="flex items-center gap-2">
-                  <span>Times in:</span>
-                  <TimezoneToggle />
-                </div>
+            </div>
+
+            {/* Timestamp and Timezone - Compact Right Side */}
+            <div className="flex flex-col items-end gap-2.5 text-sm text-gray-600">
+              <div className="flex items-center gap-2">
+                <span className="text-gray-500">Last updated:</span>
+                <Timestamp timestamp={lastUpdated} format="full" />
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-gray-500">Times in:</span>
+                <TimezoneToggle />
               </div>
             </div>
           </div>
@@ -168,7 +180,14 @@ function PublicStatusContent() {
 
         {/* Footer */}
         <footer className="mt-16 pt-8 border-t border-gray-200 text-center text-sm text-gray-500">
-          <p>Powered by Status Monitor</p>
+          {statusData.settings.logo_url && (
+            <img
+              src={`${import.meta.env.VITE_API_URL.replace('/api', '')}${statusData.settings.logo_url}`}
+              alt="Logo"
+              className="h-8 w-auto object-contain mx-auto mb-3"
+            />
+          )}
+          <p>Powered by Pabbly Status Monitor</p>
           <p className="mt-2">
             Auto-refresh enabled (every 30 seconds)
           </p>
