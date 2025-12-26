@@ -86,7 +86,7 @@ export default function TimezoneToggle() {
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 z-50 mt-2 w-80 bg-white rounded-lg shadow-lg border border-gray-200 max-h-96 overflow-hidden">
+        <div className="fixed sm:absolute left-0 right-0 sm:left-auto sm:right-0 z-50 mt-2 sm:w-80 mx-2 sm:mx-0 bg-white rounded-lg shadow-lg border border-gray-200 max-h-96 overflow-hidden">
           {/* Search Box */}
           <div className="p-3 border-b border-gray-200 sticky top-0 bg-white">
             <div className="relative">

@@ -101,30 +101,31 @@ function PublicStatusContent() {
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
       <header className="bg-white shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          <div className="flex items-center justify-between">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-0">
             <div>
               {/* Logo and Title */}
               {statusData.settings.logo_url && (
                 <img
                   src={`${import.meta.env.VITE_API_URL.replace('/api', '')}${statusData.settings.logo_url}`}
                   alt="Logo"
-                  className="h-10 w-auto object-contain mb-2"
+                  className="h-8 sm:h-10 w-auto object-contain mb-2"
                 />
               )}
-              <h1 className="text-xl font-bold text-gray-900">
+              <h1 className="text-lg sm:text-xl font-bold text-gray-900">
                 {statusData.settings.page_title || 'System Status'}
               </h1>
             </div>
 
             {/* Timestamp and Timezone - Compact Right Side */}
-            <div className="flex flex-col items-end gap-2.5 text-sm text-gray-600">
-              <div className="flex items-center gap-2">
-                <span className="text-gray-500">Last updated:</span>
+            <div className="flex flex-col sm:items-end gap-2 text-xs sm:text-sm text-gray-600">
+              <div className="flex items-center gap-1.5 sm:gap-2">
+                <span className="text-gray-500 hidden sm:inline">Last updated:</span>
+                <span className="text-gray-500 sm:hidden">Updated:</span>
                 <Timestamp timestamp={lastUpdated} format="full" />
               </div>
-              <div className="flex items-center gap-2">
-                <span className="text-gray-500">Times in:</span>
+              <div className="flex items-center gap-1.5 sm:gap-2">
+                <span className="text-gray-500 hidden sm:inline">Times in:</span>
                 <TimezoneToggle />
               </div>
             </div>

@@ -147,22 +147,22 @@ export default function ServiceDetailsModal({ service, isOpen, onClose }) {
           </div>
 
           {/* Stats Summary */}
-          <div className="grid grid-cols-4 gap-4 p-6 bg-gray-50 border-b">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 p-6 bg-gray-50 border-b">
             <div className="text-center">
-              <p className="text-sm text-gray-600 mb-1">Uptime ({timeRange})</p>
-              <p className="text-2xl font-bold text-gray-900">{uptimePercent}%</p>
+              <p className="text-xs sm:text-sm text-gray-600 mb-1">Uptime ({timeRange})</p>
+              <p className="text-xl sm:text-2xl font-bold text-gray-900">{uptimePercent}%</p>
             </div>
             <div className="text-center">
-              <p className="text-sm text-gray-600 mb-1">Total Pings</p>
-              <p className="text-2xl font-bold text-gray-900">{logs.length}</p>
+              <p className="text-xs sm:text-sm text-gray-600 mb-1">Total Pings</p>
+              <p className="text-xl sm:text-2xl font-bold text-gray-900">{logs.length}</p>
             </div>
             <div className="text-center">
-              <p className="text-sm text-gray-600 mb-1">Successful</p>
-              <p className="text-2xl font-bold text-green-600">{successCount}</p>
+              <p className="text-xs sm:text-sm text-gray-600 mb-1">Successful</p>
+              <p className="text-xl sm:text-2xl font-bold text-green-600">{successCount}</p>
             </div>
             <div className="text-center">
-              <p className="text-sm text-gray-600 mb-1">Failed</p>
-              <p className="text-2xl font-bold text-red-600">{failureCount}</p>
+              <p className="text-xs sm:text-sm text-gray-600 mb-1">Failed</p>
+              <p className="text-xl sm:text-2xl font-bold text-red-600">{failureCount}</p>
             </div>
           </div>
 
@@ -480,26 +480,26 @@ export default function ServiceDetailsModal({ service, isOpen, onClose }) {
                 ) : (
                   <>
                     {/* Stats Summary */}
-                    <div className="grid grid-cols-4 gap-4 mb-6">
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
                       <div className="bg-gray-50 p-4 rounded-lg">
                         <p className="text-xs text-gray-600 mb-1">Total Pings</p>
-                        <p className="text-xl font-bold text-gray-900">{drillDownDate.logs.length}</p>
+                        <p className="text-lg sm:text-xl font-bold text-gray-900">{drillDownDate.logs.length}</p>
                       </div>
                       <div className="bg-green-50 p-4 rounded-lg">
                         <p className="text-xs text-gray-600 mb-1">Successful</p>
-                        <p className="text-xl font-bold text-green-600">
+                        <p className="text-lg sm:text-xl font-bold text-green-600">
                           {drillDownDate.logs.filter(l => l.status === 'success').length}
                         </p>
                       </div>
                       <div className="bg-red-50 p-4 rounded-lg">
                         <p className="text-xs text-gray-600 mb-1">Failed</p>
-                        <p className="text-xl font-bold text-red-600">
+                        <p className="text-lg sm:text-xl font-bold text-red-600">
                           {drillDownDate.logs.filter(l => l.status !== 'success').length}
                         </p>
                       </div>
                       <div className="bg-blue-50 p-4 rounded-lg">
                         <p className="text-xs text-gray-600 mb-1">Avg Response</p>
-                        <p className="text-xl font-bold text-blue-600">
+                        <p className="text-lg sm:text-xl font-bold text-blue-600">
                           {Math.round(drillDownDate.logs.reduce((sum, l) => sum + (l.response_time || 0), 0) / drillDownDate.logs.length)}ms
                         </p>
                       </div>
