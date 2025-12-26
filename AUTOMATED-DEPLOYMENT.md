@@ -32,7 +32,7 @@ First, set up passwordless SSH access to your server:
 ssh-keygen -t ed25519 -C "your-email@example.com"
 
 # Copy SSH key to server
-ssh-copy-id pabbly@your-server-ip
+ssh-copy-id root@your-server-ip
 ```
 
 #### Run Deployment Script
@@ -42,10 +42,10 @@ ssh-copy-id pabbly@your-server-ip
 chmod +x deploy.sh
 
 # Deploy to production
-./deploy.sh your-server-ip pabbly
+./deploy.sh your-server-ip root
 
 # Example:
-./deploy.sh 123.45.67.89 pabbly
+./deploy.sh 123.45.67.89 root
 ```
 
 **What the script does:**
@@ -73,7 +73,7 @@ Set up automated deployment on every push to the `main` branch.
 |------------|-------|
 | `SSH_PRIVATE_KEY` | Your private SSH key (`~/.ssh/id_ed25519` content) |
 | `SSH_HOST` | Your server IP (e.g., `123.45.67.89`) |
-| `SSH_USER` | SSH username (e.g., `pabbly`) |
+| `SSH_USER` | SSH username (`root`) |
 
 #### Step 2: Create GitHub Actions Workflow
 
@@ -105,10 +105,10 @@ SSH into your server and run these commands manually:
 
 ```bash
 # SSH into server
-ssh pabbly@your-server-ip
+ssh root@your-server-ip
 
 # Navigate to app directory
-cd /home/pabbly/pabbly-status-uptime-monitoring
+cd /root/pabbly-status-uptime-monitoring
 
 # Pull latest code
 git pull origin main
@@ -127,14 +127,14 @@ cd ..
 # Run migrations
 for file in database/migrations/*.sql; do
   echo "Running $file..."
-  psql -U pabbly_user -d status_monitor -f "$file" 2>&1 | grep -v 'already exists' || true
+  psql -U status_user -d status_monitor -f "$file" 2>&1 | grep -v 'already exists' || true
 done
 
 # Restart backend
 pm2 restart pabbly-status-backend
 
 # Reload Nginx
-sudo systemctl reload nginx
+systemctl reload nginx
 
 # Check status
 pm2 status
@@ -164,8 +164,8 @@ pm2 logs pabbly-status-backend --lines 20
 
 4. **Verify Deployment**
    - Visit: https://monitor.pabbly.com
-   - Check backend logs: `ssh pabbly@server-ip 'pm2 logs pabbly-status-backend --lines 50'`
-   - Check PM2 status: `ssh pabbly@server-ip 'pm2 status'`
+   - Check backend logs: `ssh root@server-ip 'pm2 logs pabbly-status-backend --lines 50'`
+   - Check PM2 status: `ssh root@server-ip 'pm2 status'`
 
 ## Database Migrations
 
@@ -176,16 +176,16 @@ Migrations are automatically run during deployment. The script is idempotent - i
 If you need to run migrations manually:
 
 ```bash
-ssh pabbly@your-server-ip
+ssh root@your-server-ip
 
-cd /home/pabbly/pabbly-status-uptime-monitoring
+cd /root/pabbly-status-uptime-monitoring
 
 # Run specific migration
-psql -U pabbly_user -d status_monitor -f database/migrations/013_your_migration.sql
+psql -U status_user -d status_monitor -f database/migrations/013_your_migration.sql
 
 # Or run all migrations
 for file in database/migrations/*.sql; do
-  psql -U pabbly_user -d status_monitor -f "$file"
+  psql -U status_user -d status_monitor -f "$file"
 done
 ```
 
@@ -194,9 +194,9 @@ done
 If a deployment fails, you can rollback:
 
 ```bash
-ssh pabbly@your-server-ip
+ssh root@your-server-ip
 
-cd /home/pabbly/pabbly-status-uptime-monitoring
+cd /root/pabbly-status-uptime-monitoring
 
 # View commit history
 git log --oneline -10
@@ -213,7 +213,7 @@ cd ..
 pm2 restart pabbly-status-backend
 
 # Reload Nginx
-sudo systemctl reload nginx
+systemctl reload nginx
 ```
 
 ## Monitoring Deployment
@@ -222,16 +222,16 @@ sudo systemctl reload nginx
 
 ```bash
 # Backend application logs
-ssh pabbly@your-server-ip 'pm2 logs pabbly-status-backend'
+ssh root@your-server-ip 'pm2 logs pabbly-status-backend'
 
 # PM2 status
-ssh pabbly@your-server-ip 'pm2 status'
+ssh root@your-server-ip 'pm2 status'
 
 # Nginx access logs
-ssh pabbly@your-server-ip 'sudo tail -f /var/log/nginx/access.log'
+ssh root@your-server-ip 'tail -f /var/log/nginx/access.log'
 
 # Nginx error logs
-ssh pabbly@your-server-ip 'sudo tail -f /var/log/nginx/error.log'
+ssh root@your-server-ip 'tail -f /var/log/nginx/error.log'
 ```
 
 ### Health Checks
@@ -241,13 +241,13 @@ ssh pabbly@your-server-ip 'sudo tail -f /var/log/nginx/error.log'
 curl https://monitor.pabbly.com/health
 
 # Check PM2 process
-ssh pabbly@your-server-ip 'pm2 describe pabbly-status-backend'
+ssh root@your-server-ip 'pm2 describe pabbly-status-backend'
 
 # Check Nginx status
-ssh pabbly@your-server-ip 'sudo systemctl status nginx'
+ssh root@your-server-ip 'systemctl status nginx'
 
 # Check PostgreSQL status
-ssh pabbly@your-server-ip 'sudo systemctl status postgresql'
+ssh root@your-server-ip 'systemctl status postgresql'
 ```
 
 ## Troubleshooting Deployments
@@ -256,23 +256,23 @@ ssh pabbly@your-server-ip 'sudo systemctl status postgresql'
 
 ```bash
 # Check logs
-ssh pabbly@your-server-ip 'pm2 logs pabbly-status-backend --lines 100'
+ssh root@your-server-ip 'pm2 logs pabbly-status-backend --lines 100'
 
 # Check if .env exists
-ssh pabbly@your-server-ip 'ls -la /home/pabbly/pabbly-status-uptime-monitoring/backend/.env'
+ssh root@your-server-ip 'ls -la /root/pabbly-status-uptime-monitoring/backend/.env'
 
 # Verify database connection
-ssh pabbly@your-server-ip 'psql -U pabbly_user -d status_monitor -c "SELECT 1"'
+ssh root@your-server-ip 'psql -U status_user -d status_monitor -c "SELECT 1"'
 ```
 
 ### Frontend Not Updating
 
 ```bash
 # Rebuild frontend
-ssh pabbly@your-server-ip 'cd /home/pabbly/pabbly-status-uptime-monitoring/frontend && npm run build'
+ssh root@your-server-ip 'cd /root/pabbly-status-uptime-monitoring/frontend && npm run build'
 
 # Check build directory
-ssh pabbly@your-server-ip 'ls -la /home/pabbly/pabbly-status-uptime-monitoring/frontend/dist'
+ssh root@your-server-ip 'ls -la /root/pabbly-status-uptime-monitoring/frontend/dist'
 
 # Clear browser cache and reload
 # Use Ctrl+Shift+R or Cmd+Shift+R
@@ -282,24 +282,24 @@ ssh pabbly@your-server-ip 'ls -la /home/pabbly/pabbly-status-uptime-monitoring/f
 
 ```bash
 # Check PostgreSQL logs
-ssh pabbly@your-server-ip 'sudo tail -100 /var/log/postgresql/postgresql-14-main.log'
+ssh root@your-server-ip 'tail -100 /var/log/postgresql/postgresql-14-main.log'
 
 # Manually run failed migration
-ssh pabbly@your-server-ip
-psql -U pabbly_user -d status_monitor -f database/migrations/XXX_migration_name.sql
+ssh root@your-server-ip
+psql -U status_user -d status_monitor -f database/migrations/XXX_migration_name.sql
 ```
 
 ### 502 Bad Gateway After Deployment
 
 ```bash
 # Check if backend is running
-ssh pabbly@your-server-ip 'pm2 status'
+ssh root@your-server-ip 'pm2 status'
 
 # Restart backend
-ssh pabbly@your-server-ip 'pm2 restart pabbly-status-backend'
+ssh root@your-server-ip 'pm2 restart pabbly-status-backend'
 
 # Check Nginx error log
-ssh pabbly@your-server-ip 'sudo tail -50 /var/log/nginx/error.log'
+ssh root@your-server-ip 'tail -50 /var/log/nginx/error.log'
 ```
 
 ## Best Practices
@@ -322,7 +322,7 @@ npm run build
 ### 3. **Monitor After Deployment**
 ```bash
 # Watch logs for 5 minutes after deployment
-ssh pabbly@your-server-ip 'pm2 logs pabbly-status-backend'
+ssh root@your-server-ip 'pm2 logs pabbly-status-backend'
 
 # Check health endpoint
 curl https://monitor.pabbly.com/health
@@ -331,7 +331,7 @@ curl https://monitor.pabbly.com/health
 ### 4. **Keep Backups**
 ```bash
 # Database backup before major changes
-ssh pabbly@your-server-ip 'pg_dump -U pabbly_user status_monitor > ~/backup_$(date +%Y%m%d_%H%M%S).sql'
+ssh root@your-server-ip 'pg_dump -U status_user status_monitor > ~/backup_$(date +%Y%m%d_%H%M%S).sql'
 ```
 
 ### 5. **Use Git Tags for Releases**
@@ -341,7 +341,7 @@ git tag -a v1.0.0 -m "Release version 1.0.0"
 git push origin v1.0.0
 
 # Deploy specific version
-ssh pabbly@your-server-ip 'cd /home/pabbly/pabbly-status-uptime-monitoring && git checkout v1.0.0'
+ssh root@your-server-ip 'cd /root/pabbly-status-uptime-monitoring && git checkout v1.0.0'
 ```
 
 ## Zero-Downtime Deployment
@@ -367,10 +367,10 @@ If you have multiple environments:
 
 ```bash
 # Deploy to staging
-./deploy.sh staging-server-ip pabbly
+./deploy.sh staging-server-ip root
 
 # Deploy to production
-./deploy.sh production-server-ip pabbly
+./deploy.sh production-server-ip root
 ```
 
 Create environment-specific branches:
@@ -390,7 +390,7 @@ Create environment-specific branches:
 
 For deployment issues:
 1. Check logs: `pm2 logs pabbly-status-backend`
-2. Verify environment: `ssh pabbly@server-ip 'cat /home/pabbly/pabbly-status-uptime-monitoring/backend/.env'`
+2. Verify environment: `ssh root@server-ip 'cat /root/pabbly-status-uptime-monitoring/backend/.env'`
 3. Review this guide: [DEPLOYMENT.md](DEPLOYMENT.md)
 4. Open issue: https://github.com/pabbly-apps/pabbly-status-uptime-monitoring/issues
 
@@ -398,17 +398,17 @@ For deployment issues:
 
 ```bash
 # Deploy (automated)
-./deploy.sh your-server-ip pabbly
+./deploy.sh your-server-ip root
 
 # Deploy (manual)
-ssh pabbly@server-ip 'cd ~/pabbly-status-uptime-monitoring && git pull && cd backend && npm install --production && cd ../frontend && npm install && npm run build && pm2 restart pabbly-status-backend'
+ssh root@server-ip 'cd ~/pabbly-status-uptime-monitoring && git pull && cd backend && npm install --production && cd ../frontend && npm install && npm run build && pm2 restart pabbly-status-backend'
 
 # Rollback
-ssh pabbly@server-ip 'cd ~/pabbly-status-uptime-monitoring && git reset --hard HEAD~1 && cd frontend && npm run build && pm2 restart pabbly-status-backend'
+ssh root@server-ip 'cd ~/pabbly-status-uptime-monitoring && git reset --hard HEAD~1 && cd frontend && npm run build && pm2 restart pabbly-status-backend'
 
 # View logs
-ssh pabbly@server-ip 'pm2 logs pabbly-status-backend'
+ssh root@server-ip 'pm2 logs pabbly-status-backend'
 
 # Check status
-ssh pabbly@server-ip 'pm2 status && curl -I https://monitor.pabbly.com/health'
+ssh root@server-ip 'pm2 status && curl -I https://monitor.pabbly.com/health'
 ```

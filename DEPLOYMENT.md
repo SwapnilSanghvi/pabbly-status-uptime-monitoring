@@ -22,45 +22,38 @@ ssh root@your-server-ip
 apt update && apt upgrade -y
 ```
 
-### 1.3 Create a new user (recommended for security)
-```bash
-adduser pabbly
-usermod -aG sudo pabbly
-su - pabbly
-```
-
 ## Step 2: Install Required Software
 
 ### 2.1 Install Node.js 18
 ```bash
-curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
-sudo apt install -y nodejs
+curl -fsSL https://deb.nodesource.com/setup_18.x | bash -
+apt install -y nodejs
 node --version  # Should show v18.x
 npm --version
 ```
 
 ### 2.2 Install PostgreSQL 14
 ```bash
-sudo apt install -y postgresql postgresql-contrib
-sudo systemctl start postgresql
-sudo systemctl enable postgresql
+apt install -y postgresql postgresql-contrib
+systemctl start postgresql
+systemctl enable postgresql
 ```
 
 ### 2.3 Install Nginx
 ```bash
-sudo apt install -y nginx
-sudo systemctl start nginx
-sudo systemctl enable nginx
+apt install -y nginx
+systemctl start nginx
+systemctl enable nginx
 ```
 
 ### 2.4 Install PM2 (Process Manager)
 ```bash
-sudo npm install -g pm2
+npm install -g pm2
 ```
 
 ### 2.5 Install Git
 ```bash
-sudo apt install -y git
+apt install -y git
 ```
 
 ## Step 3: Setup PostgreSQL Database
@@ -72,48 +65,45 @@ sudo -u postgres psql
 
 ```sql
 CREATE DATABASE status_monitor;
-CREATE USER pabbly_user WITH PASSWORD 'your_secure_password_here';
-GRANT ALL PRIVILEGES ON DATABASE status_monitor TO pabbly_user;
+CREATE USER status_user WITH PASSWORD 'your_secure_password_here';
+GRANT ALL PRIVILEGES ON DATABASE status_monitor TO status_user;
 \q
 ```
 
 ### 3.2 Configure PostgreSQL for local access
 ```bash
-sudo nano /etc/postgresql/14/main/pg_hba.conf
+nano /etc/postgresql/14/main/pg_hba.conf
 ```
 
 Add this line before other entries:
 ```
-local   status_monitor   pabbly_user   md5
+local   status_monitor   status_user   md5
 ```
 
 Restart PostgreSQL:
 ```bash
-sudo systemctl restart postgresql
+systemctl restart postgresql
 ```
 
 ## Step 4: Clone and Setup Application
 
 ### 4.1 Clone repository
 ```bash
-cd /home/pabbly
+cd /root
 git clone https://github.com/pabbly-apps/pabbly-status-uptime-monitoring.git
 cd pabbly-status-uptime-monitoring
 ```
 
 ### 4.2 Setup Database Schema
 ```bash
-# Run schema
-psql -U pabbly_user -d status_monitor -f database/schema.sql
-
 # Run all migrations in order
 for file in database/migrations/*.sql; do
   echo "Running $file..."
-  psql -U pabbly_user -d status_monitor -f "$file"
+  psql -U status_user -d status_monitor -f "$file"
 done
 
 # Seed initial data
-psql -U pabbly_user -d status_monitor -f database/seeds/001_default_admin.sql
+psql -U status_user -d status_monitor -f database/seeds/001_default_admin.sql
 ```
 
 ### 4.3 Setup Backend
@@ -127,7 +117,7 @@ nano .env
 
 Add the following (update values accordingly):
 ```env
-DATABASE_URL=postgresql://pabbly_user:your_secure_password_here@localhost:5432/status_monitor
+DATABASE_URL=postgresql://status_user:your_secure_password_here@localhost:5432/status_monitor
 JWT_SECRET=generate-a-long-random-secret-key-here
 JWT_EXPIRY=7d
 PORT=5000
@@ -160,7 +150,7 @@ npm run build
 
 ### 5.1 Start backend with PM2
 ```bash
-cd /home/pabbly/pabbly-status-uptime-monitoring/backend
+cd /root/pabbly-status-uptime-monitoring/backend
 pm2 start src/server.js --name pabbly-status-backend
 pm2 save
 pm2 startup
@@ -178,7 +168,7 @@ pm2 logs pabbly-status-backend
 
 ### 6.1 Create Nginx configuration
 ```bash
-sudo nano /etc/nginx/sites-available/pabbly-status
+nano /etc/nginx/sites-available/pabbly-status
 ```
 
 Add the following configuration:
@@ -188,7 +178,7 @@ server {
     server_name monitor.pabbly.com;
 
     # Frontend - Serve built React app
-    root /home/pabbly/pabbly-status-uptime-monitoring/frontend/dist;
+    root /root/pabbly-status-uptime-monitoring/frontend/dist;
     index index.html;
 
     # Gzip compression
@@ -222,37 +212,37 @@ server {
 
 ### 6.2 Enable the site
 ```bash
-sudo ln -s /etc/nginx/sites-available/pabbly-status /etc/nginx/sites-enabled/
-sudo nginx -t
-sudo systemctl reload nginx
+ln -s /etc/nginx/sites-available/pabbly-status /etc/nginx/sites-enabled/
+nginx -t
+systemctl reload nginx
 ```
 
 ## Step 7: Setup SSL with Let's Encrypt (Optional but Recommended)
 
 ### 7.1 Install Certbot
 ```bash
-sudo apt install -y certbot python3-certbot-nginx
+apt install -y certbot python3-certbot-nginx
 ```
 
 ### 7.2 Obtain SSL certificate
 ```bash
-sudo certbot --nginx -d monitor.pabbly.com
+certbot --nginx -d monitor.pabbly.com
 ```
 
 Follow the prompts. Certbot will automatically configure Nginx for HTTPS.
 
 ### 7.3 Setup auto-renewal
 ```bash
-sudo systemctl status certbot.timer
+systemctl status certbot.timer
 ```
 
 ## Step 8: Configure Firewall
 
 ```bash
-sudo ufw allow OpenSSH
-sudo ufw allow 'Nginx Full'
-sudo ufw enable
-sudo ufw status
+ufw allow OpenSSH
+ufw allow 'Nginx Full'
+ufw enable
+ufw status
 ```
 
 ## Step 9: Post-Deployment Steps
@@ -297,7 +287,7 @@ sudo systemctl restart postgresql
 
 ### Update application
 ```bash
-cd /home/pabbly/pabbly-status-uptime-monitoring
+cd /root/pabbly-status-uptime-monitoring
 git pull origin main
 
 # Update backend
@@ -314,10 +304,10 @@ npm run build
 ### Database backup
 ```bash
 # Create backup
-pg_dump -U pabbly_user status_monitor > backup_$(date +%Y%m%d_%H%M%S).sql
+pg_dump -U status_user status_monitor > backup_$(date +%Y%m%d_%H%M%S).sql
 
 # Restore backup
-psql -U pabbly_user status_monitor < backup_file.sql
+psql -U status_user status_monitor < backup_file.sql
 ```
 
 ### Setup automated backups (cron)
@@ -328,10 +318,10 @@ crontab -e
 Add:
 ```cron
 # Daily database backup at 2 AM
-0 2 * * * pg_dump -U pabbly_user status_monitor > /home/pabbly/backups/db_$(date +\%Y\%m\%d).sql
+0 2 * * * pg_dump -U status_user status_monitor > /root/backups/db_$(date +\%Y\%m\%d).sql
 
 # Keep only last 7 days of backups
-0 3 * * * find /home/pabbly/backups -name "db_*.sql" -mtime +7 -delete
+0 3 * * * find /root/backups -name "db_*.sql" -mtime +7 -delete
 ```
 
 ## Troubleshooting
@@ -343,7 +333,7 @@ pm2 logs pabbly-status-backend --lines 100
 
 ### Database connection issues
 ```bash
-psql -U pabbly_user -d status_monitor
+psql -U status_user -d status_monitor
 # If this works, check DATABASE_URL in .env
 ```
 
@@ -353,16 +343,16 @@ psql -U pabbly_user -d status_monitor
 pm2 status
 
 # Check Nginx error log
-sudo tail -f /var/log/nginx/error.log
+tail -f /var/log/nginx/error.log
 ```
 
 ### Frontend not loading
 ```bash
 # Check if build exists
-ls -la /home/pabbly/pabbly-status-uptime-monitoring/frontend/dist
+ls -la /root/pabbly-status-uptime-monitoring/frontend/dist
 
 # Rebuild if needed
-cd /home/pabbly/pabbly-status-uptime-monitoring/frontend
+cd /root/pabbly-status-uptime-monitoring/frontend
 npm run build
 ```
 
@@ -374,7 +364,7 @@ npm run build
 pm2 start src/server.js --name pabbly-status-backend --max-memory-restart 1G
 
 # Configure PostgreSQL for 4GB RAM
-sudo nano /etc/postgresql/14/main/postgresql.conf
+nano /etc/postgresql/14/main/postgresql.conf
 ```
 
 Recommended PostgreSQL settings for 4GB RAM:
@@ -394,22 +384,21 @@ max_wal_size = 4GB
 
 Then restart PostgreSQL:
 ```bash
-sudo systemctl restart postgresql
+systemctl restart postgresql
 ```
 
 ## Security Hardening
 
 1. **Change default admin credentials immediately**
 2. **Use strong JWT_SECRET** (generate with: `openssl rand -base64 32`)
-3. **Keep system updated**: `sudo apt update && sudo apt upgrade`
+3. **Keep system updated**: `apt update && apt upgrade`
 4. **Setup fail2ban** to prevent brute force attacks:
    ```bash
-   sudo apt install fail2ban
-   sudo systemctl enable fail2ban
+   apt install fail2ban
+   systemctl enable fail2ban
    ```
-5. **Disable root SSH login**
-6. **Use SSH keys instead of passwords**
-7. **Regular database backups**
+5. **Use SSH keys instead of passwords**
+6. **Regular database backups**
 
 ## Support
 

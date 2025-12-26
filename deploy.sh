@@ -13,8 +13,8 @@ NC='\033[0m' # No Color
 
 # Configuration
 SERVER_IP=${1:-"your-server-ip"}
-SSH_USER=${2:-"pabbly"}
-APP_DIR="/home/$SSH_USER/pabbly-status-uptime-monitoring"
+SSH_USER=${2:-"root"}
+APP_DIR="/root/pabbly-status-uptime-monitoring"
 DOMAIN="monitor.pabbly.com"
 
 echo -e "${GREEN}================================${NC}"
@@ -26,7 +26,7 @@ echo ""
 if [ "$SERVER_IP" = "your-server-ip" ]; then
     echo -e "${RED}Error: Please provide server IP${NC}"
     echo "Usage: ./deploy.sh <server-ip> [ssh-user]"
-    echo "Example: ./deploy.sh 123.45.67.89 pabbly"
+    echo "Example: ./deploy.sh 123.45.67.89 root"
     exit 1
 fi
 

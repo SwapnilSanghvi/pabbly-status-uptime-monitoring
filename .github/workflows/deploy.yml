@@ -27,7 +27,7 @@ jobs:
             echo "=== Deploying Pabbly Status Monitor ==="
 
             # Navigate to application directory
-            cd /home/pabbly/pabbly-status-uptime-monitoring
+            cd /root/pabbly-status-uptime-monitoring
 
             # Pull latest code
             echo "Pulling latest code from GitHub..."
@@ -50,7 +50,7 @@ jobs:
             echo "Running database migrations..."
             for file in database/migrations/*.sql; do
               echo "Processing $file..."
-              psql -U pabbly_user -d status_monitor -f "$file" 2>&1 | grep -v 'already exists' || true
+              psql -U status_user -d status_monitor -f "$file" 2>&1 | grep -v 'already exists' || true
             done
 
             # Restart backend with PM2
@@ -59,7 +59,7 @@ jobs:
 
             # Reload Nginx
             echo "Reloading Nginx..."
-            sudo systemctl reload nginx
+            systemctl reload nginx
 
             # Health check
             echo "Checking service health..."
