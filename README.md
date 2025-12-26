@@ -81,8 +81,8 @@ A comprehensive real-time status monitoring system for tracking API uptime, inci
 5. **Access the Application**
    - Public Status Page: http://localhost:5173
    - Admin Login: http://localhost:5173/admin/login
-     - Email: `development@pabbly.com`
-     - Password: `251251`
+     - Default admin email: `development@pabbly.com`
+     - See database seed file for initial credentials
 
 ## Environment Variables
 
