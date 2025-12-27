@@ -151,11 +151,13 @@ function PublicStatusContent() {
             <div>
               {/* Logo and Title */}
               {statusData.settings.logo_url && (
-                <img
-                  src={`${import.meta.env.VITE_API_URL.replace('/api', '')}${statusData.settings.logo_url}`}
-                  alt="Logo"
-                  className="h-8 sm:h-10 w-auto object-contain mb-2"
-                />
+                <a href="/" className="inline-block">
+                  <img
+                    src={`${import.meta.env.VITE_API_URL.replace('/api', '')}${statusData.settings.logo_url}`}
+                    alt="Logo"
+                    className="h-8 sm:h-10 w-auto object-contain mb-2 cursor-pointer hover:opacity-80 transition-opacity"
+                  />
+                </a>
               )}
               <h1 className="text-lg sm:text-xl font-bold text-gray-900">
                 {statusData.settings.page_title || 'System Status'}
@@ -289,11 +291,13 @@ function PublicStatusContent() {
         {/* Footer */}
         <footer className="mt-16 pt-8 border-t border-gray-200 text-center text-sm text-gray-500">
           {statusData.settings.logo_url && (
-            <img
-              src={`${import.meta.env.VITE_API_URL.replace('/api', '')}${statusData.settings.logo_url}`}
-              alt="Logo"
-              className="h-8 w-auto object-contain mx-auto mb-3"
-            />
+            <a href="/" className="inline-block">
+              <img
+                src={`${import.meta.env.VITE_API_URL.replace('/api', '')}${statusData.settings.logo_url}`}
+                alt="Logo"
+                className="h-8 w-auto object-contain mx-auto mb-3 cursor-pointer hover:opacity-80 transition-opacity"
+              />
+            </a>
           )}
           <p>Powered by Pabbly Status Monitor</p>
           <p className="mt-2">
