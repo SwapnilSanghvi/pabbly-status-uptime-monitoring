@@ -10,6 +10,7 @@ export default function AddAPIModal({ isOpen, onClose, onSuccess, editingAPI }) 
     expected_status_code: 200,
     timeout_duration: 30000,
     is_active: true,
+    is_public: true,
   });
   const [loading, setLoading] = useState(false);
 
@@ -22,6 +23,7 @@ export default function AddAPIModal({ isOpen, onClose, onSuccess, editingAPI }) 
         expected_status_code: editingAPI.expected_status_code,
         timeout_duration: editingAPI.timeout_duration,
         is_active: editingAPI.is_active,
+        is_public: editingAPI.is_public ?? true,
       });
     } else {
       setFormData({
@@ -31,6 +33,7 @@ export default function AddAPIModal({ isOpen, onClose, onSuccess, editingAPI }) 
         expected_status_code: 200,
         timeout_duration: 30000,
         is_active: true,
+        is_public: true,
       });
     }
   }, [editingAPI, isOpen]);
@@ -195,6 +198,24 @@ export default function AddAPIModal({ isOpen, onClose, onSuccess, editingAPI }) 
                 Active (enable monitoring)
               </label>
             </div>
+
+            {/* Public Toggle */}
+            <div className="flex items-center">
+              <input
+                type="checkbox"
+                id="is_public"
+                name="is_public"
+                checked={formData.is_public}
+                onChange={handleChange}
+                className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+              />
+              <label htmlFor="is_public" className="ml-2 block text-sm text-gray-900">
+                Public (visible on status page to everyone)
+              </label>
+            </div>
+            <p className="text-xs text-gray-500 -mt-2 ml-6">
+              If unchecked, this API will only be visible to logged-in admins
+            </p>
 
             {/* Actions */}
             <div className="flex justify-end gap-3 pt-4 border-t">

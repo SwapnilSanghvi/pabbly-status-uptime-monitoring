@@ -2,6 +2,7 @@ import express from 'express';
 import {
   getOverallStatus,
   getServices,
+  getAllServicesForAdmin,
   getUptimeStats,
   getRecentIncidents,
   getTimeline,
@@ -10,6 +11,7 @@ import {
   getAggregatedPingLogs,
   getDrillDownPingLogs,
 } from '../controllers/publicController.js';
+import { authenticateToken } from '../middleware/auth.js';
 
 const router = express.Router();
 
@@ -18,8 +20,11 @@ const router = express.Router();
 // Get overall system status
 router.get('/status', getOverallStatus);
 
-// Get list of all services
+// Get list of all services (public only)
 router.get('/services', getServices);
+
+// Get list of all services including private ones (requires authentication)
+router.get('/services/all', authenticateToken, getAllServicesForAdmin);
 
 // Get uptime statistics
 router.get('/uptime', getUptimeStats);

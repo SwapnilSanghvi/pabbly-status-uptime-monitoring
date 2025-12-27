@@ -13,10 +13,12 @@ function AdminDashboardContent() {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
   const [stats, setStats] = useState(null);
+  const [settings, setSettings] = useState(null);
   const [apis, setApis] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingAPI, setEditingAPI] = useState(null);
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
 
   const fetchData = async () => {
     try {
@@ -26,6 +28,7 @@ function AdminDashboardContent() {
       ]);
 
       setStats(statsRes.stats);
+      setSettings(statsRes.settings);
       setApis(apisRes.apis);
       setLoading(false);
     } catch (error) {
@@ -88,16 +91,26 @@ function AdminDashboardContent() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-2xl font-bold text-gray-900">Admin Dashboard</h1>
-              <p className="text-sm text-gray-500 mt-1">
-                Welcome back, {user?.email || 'Admin'}
-              </p>
+              {/* Logo */}
+              {settings?.logo_url && (
+                <img
+                  src={`${import.meta.env.VITE_API_URL.replace('/api', '')}${settings.logo_url}`}
+                  alt="Logo"
+                  className="h-8 sm:h-10 w-auto object-contain mb-2"
+                />
+              )}
+              <h1 className="text-lg sm:text-xl font-bold text-gray-900">Admin Dashboard</h1>
             </div>
             <div className="flex items-center gap-4">
               <a
                 href="/"
-                className="text-gray-600 hover:text-gray-900 text-sm font-medium"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-gray-600 hover:text-gray-900 text-sm font-medium inline-flex items-center gap-1"
               >
+                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                </svg>
                 View Public Page
               </a>
               <a
@@ -106,12 +119,50 @@ function AdminDashboardContent() {
               >
                 Settings
               </a>
-              <button
-                onClick={handleLogout}
-                className="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
-              >
-                Logout
-              </button>
+
+              {/* Profile Dropdown */}
+              <div className="relative">
+                <button
+                  onClick={() => setIsProfileOpen(!isProfileOpen)}
+                  className="flex items-center gap-2 p-1.5 rounded-full hover:bg-gray-100 transition-colors"
+                >
+                  <div className="h-9 w-9 rounded-full bg-gray-200 flex items-center justify-center ring-2 ring-gray-300 hover:ring-gray-400 transition-all">
+                    <svg className="h-5 w-5 text-gray-600" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
+                    </svg>
+                  </div>
+                </button>
+
+                {/* Dropdown Menu */}
+                {isProfileOpen && (
+                  <>
+                    {/* Backdrop to close dropdown when clicking outside */}
+                    <div
+                      className="fixed inset-0 z-10"
+                      onClick={() => setIsProfileOpen(false)}
+                    ></div>
+
+                    <div className="absolute right-0 mt-2 w-64 bg-white rounded-md shadow-lg border border-gray-200 py-1 z-20">
+                      <div className="px-4 py-3 border-b border-gray-200">
+                        <p className="text-xs text-gray-500">Signed in as</p>
+                        <p className="text-sm font-medium text-gray-900 truncate">{user?.email || 'Admin'}</p>
+                      </div>
+                      <button
+                        onClick={() => {
+                          setIsProfileOpen(false);
+                          handleLogout();
+                        }}
+                        className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
+                      >
+                        <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                        </svg>
+                        Logout
+                      </button>
+                    </div>
+                  </>
+                )}
+              </div>
             </div>
           </div>
         </div>
@@ -147,6 +198,13 @@ function AdminDashboardContent() {
 
         {/* Footer */}
         <footer className="mt-12 pt-8 border-t border-gray-200 text-center text-sm text-gray-500">
+          {settings?.logo_url && (
+            <img
+              src={`${import.meta.env.VITE_API_URL.replace('/api', '')}${settings.logo_url}`}
+              alt="Logo"
+              className="h-8 w-auto object-contain mx-auto mb-3"
+            />
+          )}
           <p>Status Monitor - Admin Panel</p>
           <p className="mt-2">Auto-refresh enabled (every 30 seconds)</p>
         </footer>

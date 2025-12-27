@@ -6,9 +6,15 @@ export const getOverallStatus = async () => {
   return response.data;
 };
 
-// Get all monitored services
+// Get all monitored services (public only)
 export const getServices = async () => {
   const response = await api.get('/public/services');
+  return response.data;
+};
+
+// Get all monitored services including private ones (requires authentication)
+export const getAllServicesForAdmin = async () => {
+  const response = await api.get('/public/services/all');
   return response.data;
 };
 

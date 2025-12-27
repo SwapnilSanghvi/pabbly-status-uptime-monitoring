@@ -31,7 +31,7 @@ export const getOverallStatus = async (req, res) => {
           LIMIT 1
         ) as last_checked
       FROM apis a
-      WHERE a.is_active = true
+      WHERE a.is_active = true AND a.is_public = true
       ORDER BY a.display_order ASC, a.id ASC
     `);
 
@@ -81,7 +81,7 @@ export const getOverallStatus = async (req, res) => {
   }
 };
 
-// Get list of all monitored services (public view)
+// Get list of all monitored services (public view only)
 export const getServices = async (req, res) => {
   try {
     const result = await query(`
@@ -111,7 +111,7 @@ export const getServices = async (req, res) => {
           LIMIT 1
         ) as last_checked
       FROM apis a
-      WHERE a.is_active = true
+      WHERE a.is_active = true AND a.is_public = true
       ORDER BY a.display_order ASC, a.id ASC
     `);
 
@@ -136,6 +136,68 @@ export const getServices = async (req, res) => {
   }
 };
 
+// Get list of all monitored services including private ones (for authenticated admins)
+export const getAllServicesForAdmin = async (req, res) => {
+  try {
+    const result = await query(`
+      SELECT
+        a.id,
+        a.name,
+        a.url,
+        a.is_public,
+        (
+          SELECT status
+          FROM ping_logs
+          WHERE api_id = a.id
+          ORDER BY pinged_at DESC
+          LIMIT 1
+        ) as current_status,
+        (
+          SELECT response_time
+          FROM ping_logs
+          WHERE api_id = a.id
+          ORDER BY pinged_at DESC
+          LIMIT 1
+        ) as response_time,
+        (
+          SELECT pinged_at
+          FROM ping_logs
+          WHERE api_id = a.id
+          ORDER BY pinged_at DESC
+          LIMIT 1
+        ) as last_checked
+      FROM apis a
+      WHERE a.is_active = true
+      ORDER BY a.is_public DESC, a.display_order ASC, a.id ASC
+    `);
+
+    // Mark as 'pending' if no pings exist yet
+    result.rows.forEach(service => {
+      if (!service.current_status) {
+        service.current_status = 'pending';
+      }
+    });
+
+    // Separate public and private services
+    const publicServices = result.rows.filter(s => s.is_public);
+    const privateServices = result.rows.filter(s => !s.is_public);
+
+    res.json({
+      success: true,
+      count: result.rows.length,
+      publicServices,
+      privateServices,
+      allServices: result.rows,
+    });
+  } catch (error) {
+    console.error('Get all services for admin error:', error);
+    res.status(500).json({
+      error: 'Server error',
+      message: 'Failed to fetch services',
+    });
+  }
+};
+
 // Get uptime statistics for all services
 export const getUptimeStats = async (req, res) => {
   try {
@@ -151,7 +213,7 @@ export const getUptimeStats = async (req, res) => {
       LEFT JOIN uptime_summaries us24 ON a.id = us24.api_id AND us24.period = '24h'
       LEFT JOIN uptime_summaries us7 ON a.id = us7.api_id AND us7.period = '7d'
       LEFT JOIN uptime_summaries us30 ON a.id = us30.api_id AND us30.period = '30d'
-      WHERE a.is_active = true
+      WHERE a.is_active = true AND a.is_public = true
       ORDER BY a.name
     `);
 
@@ -222,7 +284,7 @@ export const getTimeline = async (req, res) => {
     const apis = await query(`
       SELECT id, name
       FROM apis
-      WHERE is_active = true
+      WHERE is_active = true AND is_public = true
       ORDER BY name
     `);
 

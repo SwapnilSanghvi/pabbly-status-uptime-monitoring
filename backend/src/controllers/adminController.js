@@ -90,6 +90,7 @@ export const createAPI = async (req, res) => {
       expected_status_code = 200,
       timeout_duration = 30000,
       is_active = true,
+      is_public = true,
     } = req.body;
 
     // Validation
@@ -111,10 +112,10 @@ export const createAPI = async (req, res) => {
     }
 
     const result = await query(
-      `INSERT INTO apis (name, url, monitoring_interval, expected_status_code, timeout_duration, is_active)
-       VALUES ($1, $2, $3, $4, $5, $6)
+      `INSERT INTO apis (name, url, monitoring_interval, expected_status_code, timeout_duration, is_active, is_public)
+       VALUES ($1, $2, $3, $4, $5, $6, $7)
        RETURNING *`,
-      [name, url, monitoring_interval, expected_status_code, timeout_duration, is_active]
+      [name, url, monitoring_interval, expected_status_code, timeout_duration, is_active, is_public]
     );
 
     res.status(201).json({
@@ -142,6 +143,7 @@ export const updateAPI = async (req, res) => {
       expected_status_code,
       timeout_duration,
       is_active,
+      is_public,
     } = req.body;
 
     // Check if API exists
@@ -200,6 +202,12 @@ export const updateAPI = async (req, res) => {
     if (is_active !== undefined) {
       updates.push(`is_active = $${paramCount}`);
       values.push(is_active);
+      paramCount++;
+    }
+
+    if (is_public !== undefined) {
+      updates.push(`is_public = $${paramCount}`);
+      values.push(is_public);
       paramCount++;
     }
 
@@ -312,6 +320,9 @@ export const getDashboardStats = async (req, res) => {
       WHERE status != 'resolved'
     `);
 
+    // System settings (for logo and branding)
+    const settings = await query('SELECT * FROM system_settings WHERE id = 1');
+
     res.json({
       success: true,
       stats: {
@@ -322,6 +333,7 @@ export const getDashboardStats = async (req, res) => {
         avg_uptime: parseFloat(avgUptime.rows[0].avg_uptime || 0).toFixed(2),
         open_incidents: parseInt(recentIncidents.rows[0].count),
       },
+      settings: settings.rows[0] || {},
     });
   } catch (error) {
     console.error('Get dashboard stats error:', error);

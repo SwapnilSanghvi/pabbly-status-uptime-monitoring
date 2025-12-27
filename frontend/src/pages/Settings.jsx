@@ -11,6 +11,7 @@ export default function Settings() {
   const { user, logout } = useAuth();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
 
   // Account Settings
   const [profileData, setProfileData] = useState({
@@ -273,24 +274,78 @@ export default function Settings() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-2xl font-bold text-gray-900">Settings</h1>
-              <p className="text-sm text-gray-500 mt-1">
-                Manage your account and system settings
-              </p>
+              {/* Logo */}
+              {logoPreview && (
+                <img
+                  src={logoPreview}
+                  alt="Logo"
+                  className="h-8 sm:h-10 w-auto object-contain mb-2"
+                />
+              )}
+              <h1 className="text-lg sm:text-xl font-bold text-gray-900">Admin Settings</h1>
             </div>
             <div className="flex items-center gap-4">
+              <a
+                href="/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-gray-600 hover:text-gray-900 text-sm font-medium inline-flex items-center gap-1"
+              >
+                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                </svg>
+                View Public Page
+              </a>
               <a
                 href="/admin/dashboard"
                 className="text-gray-600 hover:text-gray-900 text-sm font-medium"
               >
                 Back to Dashboard
               </a>
-              <button
-                onClick={handleLogout}
-                className="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
-              >
-                Logout
-              </button>
+
+              {/* Profile Dropdown */}
+              <div className="relative">
+                <button
+                  onClick={() => setIsProfileOpen(!isProfileOpen)}
+                  className="flex items-center gap-2 p-1.5 rounded-full hover:bg-gray-100 transition-colors"
+                >
+                  <div className="h-9 w-9 rounded-full bg-gray-200 flex items-center justify-center ring-2 ring-gray-300 hover:ring-gray-400 transition-all">
+                    <svg className="h-5 w-5 text-gray-600" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
+                    </svg>
+                  </div>
+                </button>
+
+                {/* Dropdown Menu */}
+                {isProfileOpen && (
+                  <>
+                    {/* Backdrop to close dropdown when clicking outside */}
+                    <div
+                      className="fixed inset-0 z-10"
+                      onClick={() => setIsProfileOpen(false)}
+                    ></div>
+
+                    <div className="absolute right-0 mt-2 w-64 bg-white rounded-md shadow-lg border border-gray-200 py-1 z-20">
+                      <div className="px-4 py-3 border-b border-gray-200">
+                        <p className="text-xs text-gray-500">Signed in as</p>
+                        <p className="text-sm font-medium text-gray-900 truncate">{user?.email || 'Admin'}</p>
+                      </div>
+                      <button
+                        onClick={() => {
+                          setIsProfileOpen(false);
+                          handleLogout();
+                        }}
+                        className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
+                      >
+                        <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                        </svg>
+                        Logout
+                      </button>
+                    </div>
+                  </>
+                )}
+              </div>
             </div>
           </div>
         </div>

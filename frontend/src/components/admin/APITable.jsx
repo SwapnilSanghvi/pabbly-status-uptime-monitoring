@@ -65,6 +65,24 @@ function SortableRow({ api, onEdit, handleDelete, deleting, getStatusBadge }) {
         {getStatusBadge(api.last_status)}
       </td>
       <td className="px-6 py-4 whitespace-nowrap">
+        {api.is_public ? (
+          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+            <svg className="h-3 w-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+              <path d="M10 12a2 2 0 100-4 2 2 0 000 4z" />
+              <path fillRule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clipRule="evenodd" />
+            </svg>
+            Public
+          </span>
+        ) : (
+          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800">
+            <svg className="h-3 w-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
+            </svg>
+            Private
+          </span>
+        )}
+      </td>
+      <td className="px-6 py-4 whitespace-nowrap">
         <div className="text-sm text-gray-900">
           {api.uptime_24h ? `${parseFloat(api.uptime_24h).toFixed(2)}%` : 'N/A'}
         </div>
@@ -223,6 +241,9 @@ export default function APITable({ apis, onEdit, onDelete, onAdd, onReorder }) {
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Status
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Visibility
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Uptime (24h)
