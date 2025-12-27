@@ -230,7 +230,7 @@ export const getUptimeStats = async (req, res) => {
   }
 };
 
-// Get recent incidents
+// Get recent incidents (only for public APIs)
 export const getRecentIncidents = async (req, res) => {
   try {
     const { limit = 10 } = req.query;
@@ -241,6 +241,7 @@ export const getRecentIncidents = async (req, res) => {
         a.name as api_name
       FROM incidents i
       JOIN apis a ON i.api_id = a.id
+      WHERE a.is_public = true
       ORDER BY i.started_at DESC
       LIMIT $1`,
       [limit]
