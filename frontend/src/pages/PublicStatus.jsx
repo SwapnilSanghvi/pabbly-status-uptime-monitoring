@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { getOverallStatus, getUptimeStats, getRecentIncidents, getTimeline, getAllServicesForAdmin } from '../services/publicService';
+import { getOverallStatus, getUptimeStats, getRecentIncidents, getPrivateIncidents, getTimeline, getAllServicesForAdmin } from '../services/publicService';
 import StatusHeader from '../components/public/StatusHeader';
 import ServiceCard from '../components/public/ServiceCard';
 import StatusTimeline from '../components/public/StatusTimeline';
@@ -18,11 +18,13 @@ function PublicStatusContent() {
   const [statusData, setStatusData] = useState(null);
   const [uptimeStats, setUptimeStats] = useState([]);
   const [incidents, setIncidents] = useState([]);
+  const [privateIncidents, setPrivateIncidents] = useState([]);
   const [timeline, setTimeline] = useState([]);
   const [lastUpdated, setLastUpdated] = useState(new Date());
   const [selectedService, setSelectedService] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [privateServices, setPrivateServices] = useState([]);
+  const [viewMode, setViewMode] = useState('public'); // 'public' or 'private'
 
   // Fetch all data
   const fetchData = async () => {
@@ -40,17 +42,22 @@ function PublicStatusContent() {
       setTimeline(timelineRes.timeline || []);
       setLastUpdated(new Date());
 
-      // If user is authenticated, fetch private services
+      // If user is authenticated, fetch private services and private incidents
       if (isAuthenticated) {
         try {
-          const allServicesRes = await getAllServicesForAdmin();
+          const [allServicesRes, privateIncidentsRes] = await Promise.all([
+            getAllServicesForAdmin(),
+            getPrivateIncidents(5),
+          ]);
           setPrivateServices(allServicesRes.privateServices || []);
+          setPrivateIncidents(privateIncidentsRes.incidents || []);
         } catch (error) {
-          console.error('Error fetching private services:', error);
-          // Don't show error to user, just don't show private services
+          console.error('Error fetching private data:', error);
+          // Don't show error to user, just don't show private data
         }
       } else {
         setPrivateServices([]);
+        setPrivateIncidents([]);
       }
 
       setLoading(false);
@@ -125,6 +132,16 @@ function PublicStatusContent() {
     };
   });
 
+  // Calculate status for current view mode
+  const currentServices = viewMode === 'public' ? servicesWithUptime : privateServicesWithUptime;
+  const servicesDown = currentServices.filter(
+    (service) => service.current_status === 'failure' || service.current_status === 'timeout' || service.last_status === 'failure' || service.last_status === 'timeout'
+  ).length;
+  const totalServices = currentServices.length;
+
+  // Get incidents for current view mode
+  const currentIncidents = viewMode === 'public' ? incidents : privateIncidents;
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
@@ -172,23 +189,60 @@ function PublicStatusContent() {
               </div>
             </div>
           </div>
+
+          {/* Admin View Toggle */}
+          {isAuthenticated && privateServicesWithUptime.length > 0 && (
+            <div className="mt-4 flex justify-center">
+              <div className="inline-flex rounded-lg border border-gray-200 bg-white p-1">
+                <button
+                  onClick={() => setViewMode('public')}
+                  className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${
+                    viewMode === 'public'
+                      ? 'bg-blue-600 text-white'
+                      : 'text-gray-700 hover:bg-gray-50'
+                  }`}
+                >
+                  Public Services
+                </button>
+                <button
+                  onClick={() => setViewMode('private')}
+                  className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${
+                    viewMode === 'private'
+                      ? 'bg-blue-600 text-white'
+                      : 'text-gray-700 hover:bg-gray-50'
+                  }`}
+                >
+                  Private Services
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </header>
 
       {/* Status Banner */}
       <StatusHeader
         overallStatus={statusData.overall_status}
-        totalServices={statusData.total_services}
-        servicesDown={statusData.services_down}
+        totalServices={totalServices}
+        servicesDown={servicesDown}
       />
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Public Services Grid */}
+        {/* Services Grid */}
         <section className="mb-12">
-          <h2 className="text-2xl font-semibold text-gray-900 mb-6">Public Services</h2>
+          <div className="flex items-center gap-3 mb-6">
+            <h2 className="text-2xl font-semibold text-gray-900">
+              {viewMode === 'public' ? 'Public Services' : 'Private Services'}
+            </h2>
+            {viewMode === 'private' && (
+              <span className="px-3 py-1 text-xs font-medium bg-amber-100 text-amber-800 rounded-full">
+                Admin Only
+              </span>
+            )}
+          </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {servicesWithUptime.map((service) => (
+            {currentServices.map((service) => (
               <ServiceCard
                 key={service.id}
                 service={service}
@@ -197,113 +251,38 @@ function PublicStatusContent() {
             ))}
           </div>
 
-          {servicesWithUptime.length === 0 && !isAuthenticated && (
+          {currentServices.length === 0 && (
             <div className="text-center py-12 bg-white rounded-lg shadow">
-              <p className="text-gray-500">No services being monitored yet.</p>
+              <p className="text-gray-500">
+                {viewMode === 'public'
+                  ? 'No public services being monitored yet.'
+                  : 'No private services being monitored yet.'}
+              </p>
             </div>
           )}
         </section>
 
-        {/* Private Services Grid (only for authenticated admins) */}
-        {isAuthenticated && privateServicesWithUptime.length > 0 && (
-          <>
-            <div className="mb-12">
-              <hr className="border-t border-dotted border-gray-300" />
-            </div>
-
-            <section className="mb-12">
-              {/* Private Services Status Banner */}
-              {(() => {
-                const privateServicesDown = privateServicesWithUptime.filter(
-                  (service) => service.current_status === 'failure' || service.current_status === 'timeout'
-                ).length;
-                const totalPrivateServices = privateServicesWithUptime.length;
-
-                const getPrivateStatusConfig = () => {
-                  if (privateServicesDown === 0) {
-                    return {
-                      text: 'All Private Services Operational',
-                      bgColor: 'bg-green-50',
-                      borderColor: 'border-green-200',
-                      textColor: 'text-green-800',
-                      dotColor: 'bg-green-500',
-                    };
-                  } else if (privateServicesDown < totalPrivateServices / 2) {
-                    return {
-                      text: 'Partial Private Services Outage',
-                      bgColor: 'bg-yellow-50',
-                      borderColor: 'border-yellow-200',
-                      textColor: 'text-yellow-800',
-                      dotColor: 'bg-yellow-500',
-                    };
-                  } else {
-                    return {
-                      text: 'Major Private Services Outage',
-                      bgColor: 'bg-red-50',
-                      borderColor: 'border-red-200',
-                      textColor: 'text-red-800',
-                      dotColor: 'bg-red-500',
-                    };
-                  }
-                };
-
-                const config = getPrivateStatusConfig();
-
-                return (
-                  <div className={`${config.bgColor} border ${config.borderColor} rounded-lg mb-6`}>
-                    <div className="px-6 py-4">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <div className={`h-3 w-3 rounded-full ${config.dotColor}`}></div>
-                          <h3 className={`text-lg font-semibold ${config.textColor}`}>
-                            {config.text}
-                          </h3>
-                          <span className="px-2.5 py-0.5 text-xs font-medium bg-amber-100 text-amber-800 rounded-full">
-                            Admin Only
-                          </span>
-                        </div>
-                        <p className={`text-sm ${config.textColor} opacity-75`}>
-                          {privateServicesDown === 0
-                            ? `All ${totalPrivateServices} private ${totalPrivateServices === 1 ? 'service is' : 'services are'} running smoothly`
-                            : `${privateServicesDown} of ${totalPrivateServices} private ${totalPrivateServices === 1 ? 'service is' : 'services are'} experiencing issues`
-                          }
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })()}
-
-              <div className="flex items-center gap-3 mb-6">
-                <h2 className="text-2xl font-semibold text-gray-900">Private Services</h2>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {privateServicesWithUptime.map((service) => (
-                  <ServiceCard
-                    key={service.id}
-                    service={service}
-                    onViewDetails={handleViewDetails}
-                  />
-                ))}
-              </div>
-            </section>
-          </>
-        )}
-
         {/* Separator */}
-        {incidents.length > 0 && (
+        {currentIncidents.length > 0 && (
           <div className="mb-12">
             <hr className="border-t border-dotted border-gray-300" />
           </div>
         )}
 
         {/* Recent Incidents */}
-        {incidents.length > 0 && (
+        {currentIncidents.length > 0 && (
           <section>
-            <h2 className="text-2xl font-semibold text-gray-900 mb-6">
-              Recent Incidents
-            </h2>
-            <IncidentList incidents={incidents} />
+            <div className="flex items-center gap-3 mb-6">
+              <h2 className="text-2xl font-semibold text-gray-900">
+                Recent Incidents
+              </h2>
+              {viewMode === 'private' && (
+                <span className="px-3 py-1 text-xs font-medium bg-amber-100 text-amber-800 rounded-full">
+                  Admin Only
+                </span>
+              )}
+            </div>
+            <IncidentList incidents={currentIncidents} />
           </section>
         )}
 

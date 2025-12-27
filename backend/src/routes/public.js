@@ -5,6 +5,7 @@ import {
   getAllServicesForAdmin,
   getUptimeStats,
   getRecentIncidents,
+  getPrivateIncidents,
   getTimeline,
   getResponseTimes,
   getPingLogs,
@@ -29,8 +30,11 @@ router.get('/services/all', authenticateToken, getAllServicesForAdmin);
 // Get uptime statistics
 router.get('/uptime', getUptimeStats);
 
-// Get recent incidents
+// Get recent incidents (public only)
 router.get('/incidents', getRecentIncidents);
+
+// Get recent incidents for private APIs (requires authentication)
+router.get('/incidents/private', authenticateToken, getPrivateIncidents);
 
 // Get 90-day timeline data
 router.get('/timeline', getTimeline);

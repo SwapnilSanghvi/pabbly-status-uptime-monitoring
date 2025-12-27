@@ -261,6 +261,37 @@ export const getRecentIncidents = async (req, res) => {
   }
 };
 
+// Get recent incidents for private APIs (requires authentication)
+export const getPrivateIncidents = async (req, res) => {
+  try {
+    const { limit = 10 } = req.query;
+
+    const result = await query(
+      `SELECT
+        i.*,
+        a.name as api_name
+      FROM incidents i
+      JOIN apis a ON i.api_id = a.id
+      WHERE a.is_public = false
+      ORDER BY i.started_at DESC
+      LIMIT $1`,
+      [limit]
+    );
+
+    res.json({
+      success: true,
+      count: result.rows.length,
+      incidents: result.rows,
+    });
+  } catch (error) {
+    console.error('Get private incidents error:', error);
+    res.status(500).json({
+      error: 'Server error',
+      message: 'Failed to fetch private incidents',
+    });
+  }
+};
+
 // Get 90-day timeline data
 export const getTimeline = async (req, res) => {
   try {

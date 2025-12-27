@@ -24,9 +24,15 @@ export const getUptimeStats = async () => {
   return response.data;
 };
 
-// Get recent incidents
+// Get recent incidents (public only)
 export const getRecentIncidents = async (limit = 10) => {
   const response = await api.get(`/public/incidents?limit=${limit}`);
+  return response.data;
+};
+
+// Get recent incidents for private APIs (requires authentication)
+export const getPrivateIncidents = async (limit = 10) => {
+  const response = await api.get(`/public/incidents/private?limit=${limit}`);
   return response.data;
 };
 
