@@ -53,7 +53,7 @@ export default function ServiceCard({ service, onViewDetails }) {
       {/* Header */}
       <div className="relative flex items-start justify-between gap-3 mb-5">
         <div className="flex-1 min-w-0">
-          <h3 className="text-lg font-bold text-gray-900 mb-1.5">
+          <h3 className="text-base font-bold text-gray-900 mb-1.5">
             {service.name}
           </h3>
           {isAuthenticated && (
