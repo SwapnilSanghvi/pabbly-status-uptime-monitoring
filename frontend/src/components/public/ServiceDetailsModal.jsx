@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useTimezone } from '../../contexts/TimezoneContext';
 import { formatTimestampWithTZ, formatFullTimestamp } from '../../utils/timezone';
+import UptimeCalendar from './UptimeCalendar';
 
 export default function ServiceDetailsModal({ service, isOpen, onClose }) {
   const { timezone } = useTimezone();
@@ -238,64 +239,76 @@ export default function ServiceDetailsModal({ service, isOpen, onClose }) {
               </div>
             ) : (
               <div>
-                {/* Legend */}
-                <div className="flex items-center justify-center gap-6 mb-6 text-xs text-gray-600">
-                  <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 bg-green-500 rounded"></div>
-                    <span>Success</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 bg-red-500 rounded"></div>
-                    <span>Failed</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 bg-gray-200 rounded"></div>
-                    <span>No data</span>
-                  </div>
-                </div>
-
-                {/* Timeline Grid */}
-                <div className="relative pb-20 overflow-visible">
-                  <div className="overflow-x-auto overflow-y-visible">
-                    <div className="inline-flex gap-0.5 flex-wrap overflow-visible" style={{ maxWidth: '100%' }}>
-                      {(logs[0]?.is_aggregated ? logs : logs.slice().reverse()).map((log, index) => {
-                        const handleMouseEnter = (e) => {
-                          const rect = e.currentTarget.getBoundingClientRect();
-                          setTooltipData({
-                            log,
-                            x: rect.left + rect.width / 2,
-                            y: rect.top,
-                            bottomY: rect.bottom,
-                          });
-                        };
-
-                        return (
-                          <div
-                            key={index}
-                            className="relative group overflow-visible"
-                            onClick={() => {
-                              if (log.is_aggregated) {
-                                handleDrillDown(log);
-                              } else if (log.status !== 'success') {
-                                handleShowErrorDetails(log);
-                              }
-                            }}
-                            onMouseEnter={handleMouseEnter}
-                            onMouseLeave={() => setTooltipData(null)}
-                          >
-                            <div
-                              className={`w-1 h-8 rounded-sm ${(log.is_aggregated || (!log.is_aggregated && log.status !== 'success')) ? 'cursor-pointer' : 'cursor-default'} transition-all duration-150 ${
-                                log.status === 'success'
-                                  ? 'bg-green-500 hover:bg-green-700'
-                                  : 'bg-red-500 hover:bg-red-700'
-                              } hover:scale-110 origin-bottom overflow-visible`}
-                            ></div>
-                          </div>
-                        );
-                      })}
+                {/* Conditional Rendering: Calendar for 90d, Timeline for 24h/7d */}
+                {timeRange === '90d' ? (
+                  <UptimeCalendar
+                    logs={logs}
+                    timezone={timezone}
+                    onDayHover={setTooltipData}
+                    onDayClick={handleDrillDown}
+                  />
+                ) : (
+                  <>
+                    {/* Legend */}
+                    <div className="flex items-center justify-center gap-6 mb-6 text-xs text-gray-600">
+                      <div className="flex items-center gap-2">
+                        <div className="w-3 h-3 bg-green-500 rounded"></div>
+                        <span>Success</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <div className="w-3 h-3 bg-red-500 rounded"></div>
+                        <span>Failed</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <div className="w-3 h-3 bg-gray-200 rounded"></div>
+                        <span>No data</span>
+                      </div>
                     </div>
-                  </div>
-                </div>
+
+                    {/* Timeline Grid */}
+                    <div className="relative pb-20 overflow-visible">
+                      <div className="overflow-x-auto overflow-y-visible">
+                        <div className="inline-flex gap-0.5 flex-wrap overflow-visible" style={{ maxWidth: '100%' }}>
+                          {(logs[0]?.is_aggregated ? logs : logs.slice().reverse()).map((log, index) => {
+                            const handleMouseEnter = (e) => {
+                              const rect = e.currentTarget.getBoundingClientRect();
+                              setTooltipData({
+                                log,
+                                x: rect.left + rect.width / 2,
+                                y: rect.top,
+                                bottomY: rect.bottom,
+                              });
+                            };
+
+                            return (
+                              <div
+                                key={index}
+                                className="relative group overflow-visible"
+                                onClick={() => {
+                                  if (log.is_aggregated) {
+                                    handleDrillDown(log);
+                                  } else if (log.status !== 'success') {
+                                    handleShowErrorDetails(log);
+                                  }
+                                }}
+                                onMouseEnter={handleMouseEnter}
+                                onMouseLeave={() => setTooltipData(null)}
+                              >
+                                <div
+                                  className={`w-1 h-8 rounded-sm ${(log.is_aggregated || (!log.is_aggregated && log.status !== 'success')) ? 'cursor-pointer' : 'cursor-default'} transition-all duration-150 ${
+                                    log.status === 'success'
+                                      ? 'bg-green-500 hover:bg-green-700'
+                                      : 'bg-red-500 hover:bg-red-700'
+                                  } hover:scale-110 origin-bottom overflow-visible`}
+                                ></div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    </div>
+                  </>
+                )}
 
                 {/* Smart Tooltip */}
                 {tooltipData && (
@@ -311,7 +324,26 @@ export default function ServiceDetailsModal({ service, isOpen, onClose }) {
                         : 'none',
                     }}
                   >
-                    {tooltipData.log.is_aggregated ? (
+                    {tooltipData.isCalendarDay ? (
+                      <>
+                        <div className="font-semibold">
+                          {tooltipData.date.toLocaleDateString('en-US', {
+                            weekday: 'long',
+                            year: 'numeric',
+                            month: 'long',
+                            day: 'numeric'
+                          })}
+                        </div>
+                        <div>Uptime: {tooltipData.log.uptime_percentage}%</div>
+                        <div>Total Pings: {tooltipData.log.total_pings}</div>
+                        <div>Successful: {tooltipData.log.successful_pings}</div>
+                        <div>Failed: {tooltipData.log.failed_pings}</div>
+                        <div>Avg Response: {tooltipData.log.avg_response_time}ms</div>
+                        <div className="text-blue-300 mt-2 text-xs">
+                          Click to view detailed breakdown →
+                        </div>
+                      </>
+                    ) : tooltipData.log.is_aggregated ? (
                       <>
                         <div className="font-semibold">
                           {formatTimestampWithTZ(tooltipData.log.bucket_start, { showRelative: false, showExact: true, showTimezone: false, timezone })}
