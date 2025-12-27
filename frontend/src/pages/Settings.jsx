@@ -12,6 +12,7 @@ export default function Settings() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState('account'); // 'account', 'password', 'system', 'webhook'
 
   // Account Settings
   const [profileData, setProfileData] = useState({
@@ -353,9 +354,57 @@ export default function Settings() {
 
       {/* Main Content */}
       <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="space-y-6">
-          {/* Account Settings */}
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+        {/* Tab Navigation */}
+        <div className="bg-white rounded-t-lg border border-gray-200 border-b-0">
+          <div className="flex border-b border-gray-200">
+            <button
+              onClick={() => setActiveTab('account')}
+              className={`px-6 py-3 text-sm font-medium border-b-2 transition-colors ${
+                activeTab === 'account'
+                  ? 'border-blue-600 text-blue-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              Account Settings
+            </button>
+            <button
+              onClick={() => setActiveTab('password')}
+              className={`px-6 py-3 text-sm font-medium border-b-2 transition-colors ${
+                activeTab === 'password'
+                  ? 'border-blue-600 text-blue-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              Change Password
+            </button>
+            <button
+              onClick={() => setActiveTab('system')}
+              className={`px-6 py-3 text-sm font-medium border-b-2 transition-colors ${
+                activeTab === 'system'
+                  ? 'border-blue-600 text-blue-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              System Settings
+            </button>
+            <button
+              onClick={() => setActiveTab('webhook')}
+              className={`px-6 py-3 text-sm font-medium border-b-2 transition-colors ${
+                activeTab === 'webhook'
+                  ? 'border-blue-600 text-blue-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              Webhook Configuration
+            </button>
+          </div>
+        </div>
+
+        {/* Tab Content */}
+        <div className="bg-white rounded-b-lg border border-gray-200 p-6">
+          {/* Account Settings Tab */}
+          {activeTab === 'account' && (
+            <div>
             <h2 className="text-lg font-semibold text-gray-900 mb-4">
               Account Settings
             </h2>
@@ -399,9 +448,11 @@ export default function Settings() {
               </div>
             </form>
           </div>
+          )}
 
-          {/* Change Password */}
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          {/* Change Password Tab */}
+          {activeTab === 'password' && (
+          <div>
             <h2 className="text-lg font-semibold text-gray-900 mb-4">
               Change Password
             </h2>
@@ -462,9 +513,11 @@ export default function Settings() {
               </div>
             </form>
           </div>
+          )}
 
-          {/* System Settings */}
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          {/* System Settings Tab */}
+          {activeTab === 'system' && (
+          <div>
             <h2 className="text-lg font-semibold text-gray-900 mb-4">
               System Settings
             </h2>
@@ -619,9 +672,11 @@ export default function Settings() {
               </div>
             </form>
           </div>
+          )}
 
-          {/* Webhook Configuration */}
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          {/* Webhook Configuration Tab */}
+          {activeTab === 'webhook' && (
+          <div>
             <h2 className="text-lg font-semibold text-gray-900 mb-4">
               Webhook Configuration
             </h2>
@@ -703,6 +758,7 @@ export default function Settings() {
               </div>
             </form>
           </div>
+          )}
         </div>
       </main>
     </div>
