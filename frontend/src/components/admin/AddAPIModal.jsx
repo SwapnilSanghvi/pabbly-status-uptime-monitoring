@@ -137,12 +137,12 @@ export default function AddAPIModal({ isOpen, onClose, onSuccess, editingAPI }) 
                   type="number"
                   id="monitoring_interval"
                   name="monitoring_interval"
-                  min="10"
+                  min="60"
                   value={formData.monitoring_interval}
                   onChange={handleChange}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                 />
-                <p className="mt-1 text-xs text-gray-500">Default: 60 seconds</p>
+                <p className="mt-1 text-xs text-gray-500">Minimum: 60 seconds (1 minute)</p>
               </div>
 
               {/* Expected Status Code */}

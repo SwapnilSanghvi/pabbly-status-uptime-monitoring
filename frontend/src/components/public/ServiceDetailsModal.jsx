@@ -145,7 +145,7 @@ export default function ServiceDetailsModal({ service, isOpen, onClose }) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto" onClick={onClose}>
+    <div className="fixed inset-0 z-50 overflow-y-auto">
       <div className="flex min-h-screen items-center justify-center p-4">
         {/* Backdrop */}
         <div
@@ -153,7 +153,7 @@ export default function ServiceDetailsModal({ service, isOpen, onClose }) {
         ></div>
 
         {/* Modal */}
-        <div className="relative bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
+        <div className="relative bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] flex flex-col">
           {/* Header */}
           <div className="flex items-center justify-between p-3 sm:p-6 border-b flex-shrink-0">
             <div className="min-w-0 flex-1 pr-2">
@@ -478,7 +478,6 @@ export default function ServiceDetailsModal({ service, isOpen, onClose }) {
             {/* Backdrop */}
             <div
               className="fixed inset-0 bg-black bg-opacity-50"
-              onClick={() => setDrillDownDate(null)}
             ></div>
 
             {/* Modal Content */}
