@@ -1,6 +1,8 @@
 import Timestamp from '../shared/Timestamp';
+import { useAuth } from '../../context/AuthContext';
 
 export default function ServiceCard({ service, onViewDetails }) {
+  const { isAuthenticated } = useAuth();
   const status = service.last_status || service.current_status;
   const isOnline = status === 'success';
   const isPending = status === 'pending';
@@ -45,9 +47,11 @@ export default function ServiceCard({ service, onViewDetails }) {
           <h3 className="text-lg font-semibold text-gray-900 mb-1">
             {service.name}
           </h3>
-          <p className="text-sm text-gray-500 truncate" title={service.url}>
-            {service.url}
-          </p>
+          {isAuthenticated && (
+            <p className="text-sm text-gray-500 truncate" title={service.url}>
+              {service.url}
+            </p>
+          )}
         </div>
         <div className="flex-shrink-0">
           <span

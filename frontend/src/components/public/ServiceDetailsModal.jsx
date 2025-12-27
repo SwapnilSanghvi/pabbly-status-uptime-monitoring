@@ -2,9 +2,11 @@ import { useState, useEffect, useRef } from 'react';
 import { useTimezone } from '../../contexts/TimezoneContext';
 import { formatTimestampWithTZ, formatFullTimestamp } from '../../utils/timezone';
 import UptimeCalendar from './UptimeCalendar';
+import { useAuth } from '../../context/AuthContext';
 
 export default function ServiceDetailsModal({ service, isOpen, onClose }) {
   const { timezone } = useTimezone();
+  const { isAuthenticated } = useAuth();
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(false);
   const [timeRange, setTimeRange] = useState('24h'); // 24h, 7d, 90d
@@ -159,7 +161,9 @@ export default function ServiceDetailsModal({ service, isOpen, onClose }) {
           <div className="flex items-center justify-between p-3 sm:p-6 border-b flex-shrink-0">
             <div className="min-w-0 flex-1 pr-2">
               <h3 className="text-base sm:text-2xl font-semibold text-gray-900 truncate">{service.name}</h3>
-              <p className="text-xs sm:text-sm text-gray-500 mt-0.5 sm:mt-1 truncate">{service.url}</p>
+              {isAuthenticated && (
+                <p className="text-xs sm:text-sm text-gray-500 mt-0.5 sm:mt-1 truncate">{service.url}</p>
+              )}
             </div>
             <button
               onClick={onClose}
