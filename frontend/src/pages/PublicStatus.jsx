@@ -148,7 +148,7 @@ function PublicStatusContent() {
       <header className="bg-white shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-0">
-            <div>
+            <div className="flex flex-col items-center sm:items-start">
               {/* Logo and Title */}
               {statusData.settings.logo_url && (
                 <a href="/" className="inline-block">
@@ -159,13 +159,13 @@ function PublicStatusContent() {
                   />
                 </a>
               )}
-              <h1 className="text-lg sm:text-xl font-bold text-gray-900">
+              <h1 className="text-lg sm:text-xl font-bold text-gray-900 text-center sm:text-left">
                 {statusData.settings.page_title || 'System Status'}
               </h1>
             </div>
 
             {/* Right Side: Admin Link (if logged in), Timestamp and Timezone */}
-            <div className="flex flex-col sm:items-end gap-2 text-xs sm:text-sm text-gray-600">
+            <div className="flex flex-col items-center sm:items-end gap-2 text-xs sm:text-sm text-gray-600">
               <div className="flex items-center gap-2 sm:gap-3">
                 <div className="flex items-center gap-1">
                   <span className="text-gray-500 hidden sm:inline">Last updated:</span>
