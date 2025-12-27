@@ -80,12 +80,25 @@ export default function ServiceDetailsModal({ service, isOpen, onClose }) {
   // Calculate statistics differently for aggregated vs raw data
   const successCount = logs.filter(log => {
     if (log.is_aggregated) {
-      return log.failed_pings === 0;
+      // For aggregated: count periods where ALL pings succeeded
+      // Convert to number because backend returns strings
+      const failedPings = parseInt(log.failed_pings) || 0;
+      return failedPings === 0;
     }
+    // For raw pings: count successful individual pings
     return log.status === 'success';
   }).length;
 
-  const failureCount = logs.length - successCount;
+  const failureCount = logs.filter(log => {
+    if (log.is_aggregated) {
+      // For aggregated: count periods where ANY pings failed
+      // Convert to number because backend returns strings
+      const failedPings = parseInt(log.failed_pings) || 0;
+      return failedPings > 0;
+    }
+    // For raw pings: count failed individual pings
+    return log.status !== 'success';
+  }).length;
   const uptimePercent = logs.length > 0 ? ((successCount / logs.length) * 100).toFixed(2) : 0;
 
   // For aggregated data, use weighted average response time
@@ -164,7 +177,9 @@ export default function ServiceDetailsModal({ service, isOpen, onClose }) {
               <p className="text-xl sm:text-2xl font-bold text-gray-900">{uptimePercent}%</p>
             </div>
             <div className="text-center">
-              <p className="text-xs sm:text-sm text-gray-600 mb-1">Total Pings</p>
+              <p className="text-xs sm:text-sm text-gray-600 mb-1">
+                {logs.length > 0 && logs[0]?.is_aggregated ? 'Total Periods' : 'Total Pings'}
+              </p>
               <p className="text-xl sm:text-2xl font-bold text-gray-900">{logs.length}</p>
             </div>
             <div className="text-center">
