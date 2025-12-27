@@ -78,19 +78,19 @@ export default function ServiceCard({ service, onViewDetails }) {
       <div className="relative grid grid-cols-3 gap-4 mb-5">
         <div className="bg-gradient-to-br from-gray-50 to-white rounded-xl p-3.5 shadow-sm border border-gray-100 hover:shadow-md transition-all duration-200">
           <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">24 hours</p>
-          <p className="text-base font-semibold bg-gradient-to-r from-blue-600 to-blue-800 bg-clip-text text-transparent">
+          <p className="text-sm font-semibold bg-gradient-to-r from-blue-600 to-blue-800 bg-clip-text text-transparent">
             {formatUptime(service.uptime_24h)}
           </p>
         </div>
         <div className="bg-gradient-to-br from-gray-50 to-white rounded-xl p-3.5 shadow-sm border border-gray-100 hover:shadow-md transition-all duration-200">
           <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">7 days</p>
-          <p className="text-base font-semibold bg-gradient-to-r from-blue-600 to-blue-800 bg-clip-text text-transparent">
+          <p className="text-sm font-semibold bg-gradient-to-r from-blue-600 to-blue-800 bg-clip-text text-transparent">
             {formatUptime(service.uptime_7d)}
           </p>
         </div>
         <div className="bg-gradient-to-br from-gray-50 to-white rounded-xl p-3.5 shadow-sm border border-gray-100 hover:shadow-md transition-all duration-200">
           <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">30 days</p>
-          <p className="text-base font-semibold bg-gradient-to-r from-blue-600 to-blue-800 bg-clip-text text-transparent">
+          <p className="text-sm font-semibold bg-gradient-to-r from-blue-600 to-blue-800 bg-clip-text text-transparent">
             {formatUptime(service.uptime_30d)}
           </p>
         </div>
