@@ -255,9 +255,9 @@ export default function ServiceDetailsModal({ service, isOpen, onClose }) {
                 </div>
 
                 {/* Timeline Grid */}
-                <div className="relative pb-20">
-                  <div className="overflow-x-auto">
-                    <div className="inline-flex gap-0.5 flex-wrap" style={{ maxWidth: '100%' }}>
+                <div className="relative pb-20 overflow-visible">
+                  <div className="overflow-x-auto overflow-y-visible">
+                    <div className="inline-flex gap-0.5 flex-wrap overflow-visible" style={{ maxWidth: '100%' }}>
                       {(logs[0]?.is_aggregated ? logs : logs.slice().reverse()).map((log, index) => {
                         const handleMouseEnter = (e) => {
                           const rect = e.currentTarget.getBoundingClientRect();
@@ -540,10 +540,10 @@ export default function ServiceDetailsModal({ service, isOpen, onClose }) {
                     </div>
 
                     {/* Timeline */}
-                    <div>
+                    <div className="overflow-visible">
                       <h4 className="text-sm font-semibold text-gray-900 mb-3">Minute-by-Minute Timeline</h4>
-                      <div className="overflow-x-auto relative">
-                        <div className="inline-flex gap-0.5 flex-wrap" style={{ maxWidth: '100%' }}>
+                      <div className="overflow-x-auto overflow-y-visible relative">
+                        <div className="inline-flex gap-0.5 flex-wrap overflow-visible" style={{ maxWidth: '100%' }}>
                           {drillDownDate.logs.map((log, index) => {
                             const handleMouseEnter = (e) => {
                               const rect = e.currentTarget.getBoundingClientRect();
