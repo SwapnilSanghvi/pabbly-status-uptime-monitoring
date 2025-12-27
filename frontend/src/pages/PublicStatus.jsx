@@ -212,11 +212,70 @@ function PublicStatusContent() {
             </div>
 
             <section className="mb-12">
+              {/* Private Services Status Banner */}
+              {(() => {
+                const privateServicesDown = privateServicesWithUptime.filter(
+                  (service) => service.current_status === 'failure' || service.current_status === 'timeout'
+                ).length;
+                const totalPrivateServices = privateServicesWithUptime.length;
+
+                const getPrivateStatusConfig = () => {
+                  if (privateServicesDown === 0) {
+                    return {
+                      text: 'All Private Services Operational',
+                      bgColor: 'bg-green-50',
+                      borderColor: 'border-green-200',
+                      textColor: 'text-green-800',
+                      dotColor: 'bg-green-500',
+                    };
+                  } else if (privateServicesDown < totalPrivateServices / 2) {
+                    return {
+                      text: 'Partial Private Services Outage',
+                      bgColor: 'bg-yellow-50',
+                      borderColor: 'border-yellow-200',
+                      textColor: 'text-yellow-800',
+                      dotColor: 'bg-yellow-500',
+                    };
+                  } else {
+                    return {
+                      text: 'Major Private Services Outage',
+                      bgColor: 'bg-red-50',
+                      borderColor: 'border-red-200',
+                      textColor: 'text-red-800',
+                      dotColor: 'bg-red-500',
+                    };
+                  }
+                };
+
+                const config = getPrivateStatusConfig();
+
+                return (
+                  <div className={`${config.bgColor} border ${config.borderColor} rounded-lg mb-6`}>
+                    <div className="px-6 py-4">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className={`h-3 w-3 rounded-full ${config.dotColor}`}></div>
+                          <h3 className={`text-lg font-semibold ${config.textColor}`}>
+                            {config.text}
+                          </h3>
+                          <span className="px-2.5 py-0.5 text-xs font-medium bg-amber-100 text-amber-800 rounded-full">
+                            Admin Only
+                          </span>
+                        </div>
+                        <p className={`text-sm ${config.textColor} opacity-75`}>
+                          {privateServicesDown === 0
+                            ? `All ${totalPrivateServices} private ${totalPrivateServices === 1 ? 'service is' : 'services are'} running smoothly`
+                            : `${privateServicesDown} of ${totalPrivateServices} private ${totalPrivateServices === 1 ? 'service is' : 'services are'} experiencing issues`
+                          }
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()}
+
               <div className="flex items-center gap-3 mb-6">
                 <h2 className="text-2xl font-semibold text-gray-900">Private Services</h2>
-                <span className="px-3 py-1 text-xs font-medium bg-amber-100 text-amber-800 rounded-full">
-                  Admin Only
-                </span>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {privateServicesWithUptime.map((service) => (
