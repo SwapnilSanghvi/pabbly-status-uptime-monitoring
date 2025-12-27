@@ -96,33 +96,33 @@ export default function ServiceCard({ service, onViewDetails }) {
         </div>
       </div>
 
-      {/* Response Time */}
-      {service.last_response_time && (
+      {/* Response Time & Last Checked */}
+      {(service.last_response_time || service.last_checked) && (
         <div className="pt-4 border-t border-gray-200">
-          <div className="flex items-center justify-between bg-gradient-to-r from-blue-50 to-transparent rounded-lg p-3 -mx-1">
+          <div className="flex items-center justify-between bg-blue-50 rounded-lg p-3 -mx-1">
             <div className="flex items-center gap-2">
               <svg className="h-4 w-4 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
               </svg>
-              <span className="text-xs font-medium text-gray-600">Response Time</span>
+              <span className="text-xs font-medium text-gray-600">
+                Response Time:{' '}
+                {service.last_response_time && (
+                  <span className="text-sm font-bold text-gray-900">
+                    {service.last_response_time}ms
+                  </span>
+                )}
+              </span>
             </div>
-            <span className="text-sm font-bold text-gray-900">
-              {service.last_response_time}ms
-            </span>
-          </div>
-        </div>
-      )}
-
-      {/* Last Checked */}
-      {service.last_checked && (
-        <div className="mt-3 px-1">
-          <div className="flex items-center gap-1.5">
-            <svg className="h-3.5 w-3.5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            <p className="text-xs text-gray-500">
-              Last checked: {formatDistanceToNow(new Date(service.last_checked), { addSuffix: true })}
-            </p>
+            {service.last_checked && (
+              <div className="flex items-center gap-1.5">
+                <svg className="h-3.5 w-3.5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <span className="text-xs text-gray-500">
+                  {formatDistanceToNow(new Date(service.last_checked), { addSuffix: true })}
+                </span>
+              </div>
+            )}
           </div>
         </div>
       )}
