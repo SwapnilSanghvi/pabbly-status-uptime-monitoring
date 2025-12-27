@@ -272,7 +272,7 @@ export default function ServiceDetailsModal({ service, isOpen, onClose }) {
                         return (
                           <div
                             key={index}
-                            className="relative group"
+                            className="relative group overflow-visible"
                             onClick={() => {
                               if (log.is_aggregated) {
                                 handleDrillDown(log);
@@ -284,9 +284,11 @@ export default function ServiceDetailsModal({ service, isOpen, onClose }) {
                             onMouseLeave={() => setTooltipData(null)}
                           >
                             <div
-                              className={`w-1 h-8 rounded-sm ${(log.is_aggregated || (!log.is_aggregated && log.status !== 'success')) ? 'cursor-pointer' : 'cursor-default'} transition-opacity hover:opacity-80 ${
-                                log.status === 'success' ? 'bg-green-500' : 'bg-red-500'
-                              }`}
+                              className={`w-1 h-8 rounded-sm ${(log.is_aggregated || (!log.is_aggregated && log.status !== 'success')) ? 'cursor-pointer' : 'cursor-default'} transition-all duration-150 ${
+                                log.status === 'success'
+                                  ? 'bg-green-500 hover:bg-green-700'
+                                  : 'bg-red-500 hover:bg-red-700'
+                              } hover:scale-110 origin-bottom overflow-visible`}
                             ></div>
                           </div>
                         );
@@ -556,15 +558,17 @@ export default function ServiceDetailsModal({ service, isOpen, onClose }) {
                             return (
                               <div
                                 key={index}
-                                className="relative group"
+                                className="relative group overflow-visible"
                                 onClick={() => log.status !== 'success' && handleShowErrorDetails(log)}
                                 onMouseEnter={handleMouseEnter}
                                 onMouseLeave={() => setDrillDownTooltip(null)}
                               >
                                 <div
-                                  className={`w-1 h-8 rounded-sm ${log.status !== 'success' ? 'cursor-pointer' : 'cursor-default'} transition-opacity hover:opacity-80 ${
-                                    log.status === 'success' ? 'bg-green-500' : 'bg-red-500'
-                                  }`}
+                                  className={`w-1 h-8 rounded-sm ${log.status !== 'success' ? 'cursor-pointer' : 'cursor-default'} transition-all duration-150 ${
+                                    log.status === 'success'
+                                      ? 'bg-green-500 hover:bg-green-700'
+                                      : 'bg-red-500 hover:bg-red-700'
+                                  } hover:scale-110 origin-bottom overflow-visible`}
                                 ></div>
                               </div>
                             );
