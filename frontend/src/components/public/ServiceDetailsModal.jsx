@@ -155,23 +155,23 @@ export default function ServiceDetailsModal({ service, isOpen, onClose }) {
         {/* Modal */}
         <div className="relative bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
           {/* Header */}
-          <div className="flex items-center justify-between p-6 border-b flex-shrink-0">
-            <div>
-              <h3 className="text-2xl font-semibold text-gray-900">{service.name}</h3>
-              <p className="text-sm text-gray-500 mt-1">{service.url}</p>
+          <div className="flex items-center justify-between p-3 sm:p-6 border-b flex-shrink-0">
+            <div className="min-w-0 flex-1 pr-2">
+              <h3 className="text-base sm:text-2xl font-semibold text-gray-900 truncate">{service.name}</h3>
+              <p className="text-xs sm:text-sm text-gray-500 mt-0.5 sm:mt-1 truncate">{service.url}</p>
             </div>
             <button
               onClick={onClose}
-              className="text-gray-400 hover:text-gray-500"
+              className="text-gray-400 hover:text-gray-500 flex-shrink-0"
             >
-              <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <svg className="h-5 w-5 sm:h-6 sm:w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
               </svg>
             </button>
           </div>
 
           {/* Stats Summary */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 p-6 bg-gray-50 border-b flex-shrink-0">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 p-3 sm:p-6 bg-gray-50 border-b flex-shrink-0">
             <div className="text-center">
               <p className="text-xs sm:text-sm text-gray-600 mb-1">Uptime ({timeRange})</p>
               <p className="text-xl sm:text-2xl font-bold text-gray-900">{uptimePercent}%</p>
@@ -193,26 +193,32 @@ export default function ServiceDetailsModal({ service, isOpen, onClose }) {
           </div>
 
           {/* Time Range Selector */}
-          <div className="p-4 border-b flex-shrink-0">
-            <h4 className="text-lg font-semibold text-gray-900 mb-3">Ping History</h4>
-            <div className="flex gap-2 flex-wrap">
+          <div className="p-3 sm:p-4 border-b flex-shrink-0">
+            <h4 className="text-sm sm:text-lg font-semibold text-gray-900 mb-2 sm:mb-3">Ping History</h4>
+            <div className="flex gap-1.5 sm:gap-2">
               {['24h', '7d', '90d'].map((range) => {
                 const labels = {
                   '24h': 'Last 24 Hours',
                   '7d': 'Last 7 Days',
                   '90d': 'Last 90 Days'
                 };
+                const mobileLabels = {
+                  '24h': '24 Hours',
+                  '7d': '7 Days',
+                  '90d': '90 Days'
+                };
                 return (
                   <button
                     key={range}
                     onClick={() => setTimeRange(range)}
-                    className={`px-3 py-1.5 rounded-md text-sm font-medium ${
+                    className={`flex-1 px-2 sm:px-3 py-1.5 rounded-md text-xs sm:text-sm font-medium ${
                       timeRange === range
                         ? 'bg-blue-600 text-white'
                         : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                     }`}
                   >
-                    {labels[range]}
+                    <span className="hidden sm:inline">{labels[range]}</span>
+                    <span className="sm:hidden">{mobileLabels[range]}</span>
                   </button>
                 );
               })}
