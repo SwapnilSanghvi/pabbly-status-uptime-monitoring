@@ -472,8 +472,8 @@ export const getAggregatedPingLogs = async (req, res) => {
         COUNT(*) FILTER (WHERE status = 'success') as successful_pings,
         COUNT(*) FILTER (WHERE status IN ('failure', 'timeout')) as failed_pings,
         AVG(response_time) as avg_response_time,
-        (DATE_TRUNC($1, pinged_at AT TIME ZONE $3) AT TIME ZONE $3) as bucket_start,
-        (DATE_TRUNC($1, pinged_at AT TIME ZONE $3) + INTERVAL '1 ${interval}') AT TIME ZONE $3 as bucket_end,
+        ((DATE_TRUNC($1, pinged_at AT TIME ZONE $3)::timestamp) AT TIME ZONE $3) as bucket_start,
+        ((DATE_TRUNC($1, pinged_at AT TIME ZONE $3)::timestamp + INTERVAL '1 ${interval}') AT TIME ZONE $3) as bucket_end,
         ROUND(
           (COUNT(*) FILTER (WHERE status = 'success')::numeric / COUNT(*)::numeric) * 100,
           2
