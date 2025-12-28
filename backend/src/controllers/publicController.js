@@ -453,7 +453,16 @@ export const getAggregatedPingLogs = async (req, res) => {
     const { interval, days } = periodConfig;
 
     // Use provided timezone or default to UTC
-    const userTimezone = timezone || 'UTC';
+    let userTimezone = timezone || 'UTC';
+
+    // Map old timezone names to new ones for PostgreSQL compatibility
+    const timezoneAliases = {
+      'Asia/Calcutta': 'Asia/Kolkata'
+    };
+
+    if (timezoneAliases[userTimezone]) {
+      userTimezone = timezoneAliases[userTimezone];
+    }
 
     // Query with timezone-aware time bucketing
     const result = await query(
