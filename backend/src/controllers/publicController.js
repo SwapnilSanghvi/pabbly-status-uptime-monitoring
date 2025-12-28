@@ -434,7 +434,7 @@ export const getPingLogs = async (req, res) => {
 export const getAggregatedPingLogs = async (req, res) => {
   try {
     const { apiId } = req.params;
-    const { period } = req.query; // '7d' or '90d'
+    const { period, timezone } = req.query; // '7d' or '90d', and optional timezone
 
     // Determine aggregation interval and time range
     const config = {
@@ -452,16 +452,19 @@ export const getAggregatedPingLogs = async (req, res) => {
 
     const { interval, days } = periodConfig;
 
-    // Query with time bucketing
+    // Use provided timezone or default to UTC
+    const userTimezone = timezone || 'UTC';
+
+    // Query with timezone-aware time bucketing
     const result = await query(
       `SELECT
-        DATE_TRUNC($1, pinged_at) as time_bucket,
+        DATE_TRUNC($1, pinged_at AT TIME ZONE $3) as time_bucket,
         COUNT(*) as total_pings,
         COUNT(*) FILTER (WHERE status = 'success') as successful_pings,
         COUNT(*) FILTER (WHERE status IN ('failure', 'timeout')) as failed_pings,
         AVG(response_time) as avg_response_time,
-        DATE_TRUNC($1, pinged_at) as bucket_start,
-        DATE_TRUNC($1, pinged_at) + INTERVAL '1 ${interval}' as bucket_end,
+        (DATE_TRUNC($1, pinged_at AT TIME ZONE $3) AT TIME ZONE $3) as bucket_start,
+        (DATE_TRUNC($1, pinged_at AT TIME ZONE $3) + INTERVAL '1 ${interval}') AT TIME ZONE $3 as bucket_end,
         ROUND(
           (COUNT(*) FILTER (WHERE status = 'success')::numeric / COUNT(*)::numeric) * 100,
           2
@@ -469,9 +472,9 @@ export const getAggregatedPingLogs = async (req, res) => {
       FROM ping_logs
       WHERE api_id = $2
         AND pinged_at >= NOW() - INTERVAL '${days} days'
-      GROUP BY DATE_TRUNC($1, pinged_at)
+      GROUP BY DATE_TRUNC($1, pinged_at AT TIME ZONE $3)
       ORDER BY time_bucket ASC`,
-      [interval, apiId]
+      [interval, apiId, userTimezone]
     );
 
     res.json({

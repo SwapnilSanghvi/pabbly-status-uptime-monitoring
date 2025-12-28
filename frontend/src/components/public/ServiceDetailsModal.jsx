@@ -19,7 +19,7 @@ export default function ServiceDetailsModal({ service, isOpen, onClose }) {
     if (isOpen && service) {
       fetchPingLogs();
     }
-  }, [isOpen, service, timeRange]);
+  }, [isOpen, service, timeRange, timezone]);
 
   // Prevent body scroll when modal is open
   useEffect(() => {
@@ -41,7 +41,7 @@ export default function ServiceDetailsModal({ service, isOpen, onClose }) {
       if (isAggregated) {
         // Fetch aggregated data for longer periods
         const response = await fetch(
-          `${import.meta.env.VITE_API_URL}/public/ping-logs/${service.id}/aggregated?period=${timeRange}`
+          `${import.meta.env.VITE_API_URL}/public/ping-logs/${service.id}/aggregated?period=${timeRange}&timezone=${encodeURIComponent(timezone)}`
         );
         const data = await response.json();
 
