@@ -56,8 +56,11 @@ export default function UptimeCalendar({ logs, timezone, onDayHover, onDayClick 
   const getLogForDate = (date) => {
     if (!date || !logs || logs.length === 0) return null;
 
-    // Format the date to match with log bucket_start
-    const dateStr = date.toISOString().split('T')[0]; // YYYY-MM-DD
+    // Convert local date to YYYY-MM-DD string (preserving local date, not UTC)
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const dateStr = `${year}-${month}-${day}`;
 
     return logs.find(log => {
       if (!log || !log.bucket_start) return false;
@@ -66,7 +69,14 @@ export default function UptimeCalendar({ logs, timezone, onDayHover, onDayClick 
         const logDate = new Date(log.bucket_start);
         if (isNaN(logDate.getTime())) return false;
 
-        const logDateStr = logDate.toISOString().split('T')[0];
+        // Convert log date to the user's selected timezone to get the correct date
+        // This ensures we're comparing dates in the same timezone context
+        const logDateInTZ = new Date(logDate.toLocaleString('en-US', { timeZone: timezone }));
+        const logYear = logDateInTZ.getFullYear();
+        const logMonth = String(logDateInTZ.getMonth() + 1).padStart(2, '0');
+        const logDay = String(logDateInTZ.getDate()).padStart(2, '0');
+        const logDateStr = `${logYear}-${logMonth}-${logDay}`;
+
         return logDateStr === dateStr;
       } catch (error) {
         console.error('Error parsing log date:', error, log);
