@@ -194,24 +194,24 @@ function PublicStatusContent() {
 
           {/* Admin View Toggle */}
           {isAuthenticated && privateServicesWithUptime.length > 0 && (
-            <div className="mt-4 flex justify-center">
-              <div className="inline-flex rounded-lg border border-gray-200 bg-white p-1">
+            <div className="mt-3 flex justify-center">
+              <div className="inline-flex rounded-md border border-gray-300 bg-gray-50 p-0.5">
                 <button
                   onClick={() => setViewMode('public')}
-                  className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${
+                  className={`px-3 py-1.5 text-xs font-medium rounded transition-colors ${
                     viewMode === 'public'
-                      ? 'bg-blue-600 text-white'
-                      : 'text-gray-700 hover:bg-gray-50'
+                      ? 'bg-blue-600 text-white shadow-sm'
+                      : 'text-gray-600 hover:text-gray-900'
                   }`}
                 >
                   Public Services
                 </button>
                 <button
                   onClick={() => setViewMode('private')}
-                  className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${
+                  className={`px-3 py-1.5 text-xs font-medium rounded transition-colors ${
                     viewMode === 'private'
-                      ? 'bg-blue-600 text-white'
-                      : 'text-gray-700 hover:bg-gray-50'
+                      ? 'bg-blue-600 text-white shadow-sm'
+                      : 'text-gray-600 hover:text-gray-900'
                   }`}
                 >
                   Private Services

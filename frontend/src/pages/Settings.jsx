@@ -273,7 +273,86 @@ export default function Settings() {
       {/* Header */}
       <header className="bg-white shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex items-center justify-between">
+          {/* Mobile Layout */}
+          <div className="sm:hidden">
+            <div className="flex flex-col items-center gap-3">
+              {/* Logo */}
+              {logoPreview && (
+                <img
+                  src={logoPreview}
+                  alt="Logo"
+                  className="h-8 w-auto object-contain"
+                />
+              )}
+              <h1 className="text-lg font-bold text-gray-900">Admin Settings</h1>
+
+              {/* Action Buttons */}
+              <div className="flex items-center gap-2">
+                <a
+                  href="/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center px-2.5 py-1.5 text-xs font-medium text-gray-600 hover:text-gray-900 bg-gray-50 hover:bg-gray-100 border border-gray-300 rounded-md transition-colors"
+                >
+                  <svg className="h-3.5 w-3.5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                  </svg>
+                  Public
+                </a>
+                <a
+                  href="/admin/dashboard"
+                  className="inline-flex items-center px-2.5 py-1.5 text-xs font-medium text-gray-600 hover:text-gray-900 bg-gray-50 hover:bg-gray-100 border border-gray-300 rounded-md transition-colors"
+                >
+                  <svg className="h-3.5 w-3.5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                  </svg>
+                  Dashboard
+                </a>
+
+                {/* Profile Dropdown */}
+                <div className="relative">
+                  <button
+                    onClick={() => setIsProfileOpen(!isProfileOpen)}
+                    className="p-1 rounded-full hover:bg-gray-100 transition-colors"
+                  >
+                    <div className="h-7 w-7 rounded-full bg-gray-200 flex items-center justify-center ring-2 ring-gray-300">
+                      <svg className="h-4 w-4 text-gray-600" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
+                      </svg>
+                    </div>
+                  </button>
+
+                  {/* Dropdown Menu */}
+                  {isProfileOpen && (
+                    <>
+                      <div className="fixed inset-0 z-10" onClick={() => setIsProfileOpen(false)}></div>
+                      <div className="absolute right-0 mt-2 w-64 bg-white rounded-md shadow-lg border border-gray-200 py-1 z-20">
+                        <div className="px-4 py-3 border-b border-gray-200">
+                          <p className="text-xs text-gray-500">Signed in as</p>
+                          <p className="text-sm font-medium text-gray-900 truncate">{user?.email || 'Admin'}</p>
+                        </div>
+                        <button
+                          onClick={() => {
+                            setIsProfileOpen(false);
+                            handleLogout();
+                          }}
+                          className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
+                        >
+                          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                          </svg>
+                          Logout
+                        </button>
+                      </div>
+                    </>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Desktop Layout */}
+          <div className="hidden sm:flex items-center justify-between">
             <div>
               {/* Logo */}
               {logoPreview && (
@@ -320,12 +399,7 @@ export default function Settings() {
                 {/* Dropdown Menu */}
                 {isProfileOpen && (
                   <>
-                    {/* Backdrop to close dropdown when clicking outside */}
-                    <div
-                      className="fixed inset-0 z-10"
-                      onClick={() => setIsProfileOpen(false)}
-                    ></div>
-
+                    <div className="fixed inset-0 z-10" onClick={() => setIsProfileOpen(false)}></div>
                     <div className="absolute right-0 mt-2 w-64 bg-white rounded-md shadow-lg border border-gray-200 py-1 z-20">
                       <div className="px-4 py-3 border-b border-gray-200">
                         <p className="text-xs text-gray-500">Signed in as</p>
@@ -356,46 +430,46 @@ export default function Settings() {
       <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Tab Navigation */}
         <div className="bg-white rounded-t-lg border border-gray-200 border-b-0">
-          <div className="flex border-b border-gray-200">
+          <div className="flex overflow-x-auto border-b border-gray-200 overflow-y-hidden" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
             <button
               onClick={() => setActiveTab('account')}
-              className={`px-6 py-3 text-sm font-medium border-b-2 transition-colors ${
+              className={`px-4 sm:px-6 py-3 text-xs sm:text-sm font-medium border-b-2 transition-colors whitespace-nowrap flex-shrink-0 ${
                 activeTab === 'account'
                   ? 'border-blue-600 text-blue-600'
                   : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
               }`}
             >
-              Account Settings
+              Account
             </button>
             <button
               onClick={() => setActiveTab('password')}
-              className={`px-6 py-3 text-sm font-medium border-b-2 transition-colors ${
+              className={`px-4 sm:px-6 py-3 text-xs sm:text-sm font-medium border-b-2 transition-colors whitespace-nowrap flex-shrink-0 ${
                 activeTab === 'password'
                   ? 'border-blue-600 text-blue-600'
                   : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
               }`}
             >
-              Change Password
+              Password
             </button>
             <button
               onClick={() => setActiveTab('system')}
-              className={`px-6 py-3 text-sm font-medium border-b-2 transition-colors ${
+              className={`px-4 sm:px-6 py-3 text-xs sm:text-sm font-medium border-b-2 transition-colors whitespace-nowrap flex-shrink-0 ${
                 activeTab === 'system'
                   ? 'border-blue-600 text-blue-600'
                   : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
               }`}
             >
-              System Settings
+              System
             </button>
             <button
               onClick={() => setActiveTab('webhook')}
-              className={`px-6 py-3 text-sm font-medium border-b-2 transition-colors ${
+              className={`px-4 sm:px-6 py-3 text-xs sm:text-sm font-medium border-b-2 transition-colors whitespace-nowrap flex-shrink-0 ${
                 activeTab === 'webhook'
                   ? 'border-blue-600 text-blue-600'
                   : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
               }`}
             >
-              Webhook Configuration
+              Webhook
             </button>
           </div>
         </div>
