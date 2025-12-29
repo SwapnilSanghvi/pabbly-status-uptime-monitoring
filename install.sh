@@ -120,7 +120,7 @@ while true; do
     read -p "Enter your domain (e.g., status.example.com): " DOMAIN
     if [[ -z "$DOMAIN" ]]; then
         echo -e "${RED}Domain cannot be empty!${NC}"
-    elif [[ ! "$DOMAIN" =~ ^[a-zA-Z0-9][a-zA-Z0-9-]{1,61}[a-zA-Z0-9]\.[a-zA-Z]{2,}$ ]]; then
+    elif [[ ! "$DOMAIN" =~ ^[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?)*\.[a-zA-Z]{2,}$ ]]; then
         echo -e "${RED}Invalid domain format!${NC}"
     else
         break
