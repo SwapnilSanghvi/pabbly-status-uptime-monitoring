@@ -72,9 +72,9 @@ Perfect for SaaS companies, development teams, and anyone who needs to monitor A
 
 ## 🚀 Quick Start
 
-### 🎯 One-Command Installation (Recommended for Production)
+### 🎯 Automated Installation (Recommended for Production)
 
-Deploy Status Monitor to your Ubuntu/Debian server with these commands:
+Deploy Status Monitor to your Ubuntu/Debian server:
 
 ```bash
 curl -sSL https://raw.githubusercontent.com/pabbly-apps/pabbly-status-uptime-monitoring/main/install.sh -o install.sh
