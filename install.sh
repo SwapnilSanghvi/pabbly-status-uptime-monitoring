@@ -387,20 +387,19 @@ echo -e "  ✓ Application files ready"
 ################################################################################
 echo -e "${GREEN}[9/10] Initializing database...${NC}"
 
-# Generate password hash for admin
+# Generate bcrypt hash for admin password
 cd "$APP_DIR/backend"
-HASHED_PASSWORD=$(node -e "const bcrypt = require('bcrypt'); bcrypt.hash('$ADMIN_PASSWORD', 10, (err, hash) => { console.log(hash); });")
-
-# Wait a moment for hash generation
-sleep 2
-
-# Get the actual hash (Node.js bcrypt outputs asynchronously)
-HASHED_PASSWORD=$(node << 'HASHEOF'
+HASHED_PASSWORD=$(node -e "
 const bcrypt = require('bcrypt');
 const password = process.argv[1];
-bcrypt.hash(password, 10).then(hash => console.log(hash));
-HASHEOF
-"$ADMIN_PASSWORD")
+(async () => {
+  const hash = await bcrypt.hash(password, 10);
+  console.log(hash);
+})();
+" "$ADMIN_PASSWORD")
+
+# Wait for async operation to complete
+sleep 1
 
 # Create temporary schema with custom admin
 cd "$APP_DIR"
