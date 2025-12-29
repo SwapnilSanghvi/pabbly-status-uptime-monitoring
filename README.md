@@ -115,10 +115,7 @@ curl -sSL https://raw.githubusercontent.com/pabbly-apps/pabbly-status-uptime-mon
 
 2. **Setup Database**
    \`\`\`bash
-   # Create PostgreSQL database
    createdb status_monitor
-
-   # Run schema (creates all tables and seed data in one command!)
    psql -U postgres -d status_monitor -f database/schema.sql
    \`\`\`
 
@@ -128,10 +125,11 @@ curl -sSL https://raw.githubusercontent.com/pabbly-apps/pabbly-status-uptime-mon
    \`\`\`bash
    cd backend
    cp .env.example .env
-   # Edit .env with your database credentials and JWT secret
    npm install
    npm run dev
    \`\`\`
+
+   Edit `.env` with your database credentials and JWT secret
 
 4. **Configure Frontend**
    \`\`\`bash
