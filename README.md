@@ -81,7 +81,9 @@ curl -sSL https://raw.githubusercontent.com/pabbly-apps/pabbly-status-uptime-mon
 sudo bash install.sh
 ```
 
-**📺 [Watch Video Tutorial](https://youtu.be/9mVmDk1RL2c)** - Step-by-step installation guide
+**📺 Video Tutorial - Step-by-step Installation Guide:**
+
+[![Status Monitor Installation Tutorial](https://img.youtube.com/vi/9mVmDk1RL2c/maxresdefault.jpg)](https://youtu.be/9mVmDk1RL2c)
 
 **What it does:**
 - ✅ Installs all dependencies (Node.js, PostgreSQL, Nginx, PM2, Certbot)
