@@ -194,92 +194,40 @@ VITE_API_URL=http://localhost:5000/api
 ## 📸 Screenshots
 
 ### Public Status Page
-
-<div align="center">
-
 ![Public Status Page](.github/images/public-status-page.jpg)
-*Main public status page showing overall system health and monitored services*
 
-</div>
+### Detailed View with Uptime Stats
+![Detailed View](.github/images/status-page-detailed.jpg)
 
-### Detailed Views
+### 90-Day Calendar View
+![90-Day Calendar](.github/images/90-day-calendar.jpg)
 
-<table>
-  <tr>
-    <td width="50%">
-      <img src=".github/images/status-page-detailed.jpg" alt="Detailed Status View"/>
-      <p align="center"><em>Detailed service view with 24h, 7d, and 90d uptime stats</em></p>
-    </td>
-    <td width="50%">
-      <img src=".github/images/90-day-calendar.jpg" alt="90-Day Calendar"/>
-      <p align="center"><em>90-day calendar heatmap visualization</em></p>
-    </td>
-  </tr>
-  <tr>
-    <td width="50%">
-      <img src=".github/images/daily-breakdown.jpg" alt="Daily Breakdown"/>
-      <p align="center"><em>Detailed breakdown for any specific day</em></p>
-    </td>
-    <td width="50%">
-      <img src=".github/images/error-response-details.jpg" alt="Error Details"/>
-      <p align="center"><em>Full error response data for troubleshooting</em></p>
-    </td>
-  </tr>
-</table>
+### Daily Breakdown
+![Daily Breakdown](.github/images/daily-breakdown.jpg)
 
-### Admin Dashboard
+### Drill-Down to See Exact Error Response Details
+![Error Response Details](.github/images/error-response-drilldown.jpg)
 
-<div align="center">
+### Private Services (Admin-Only View)
+![Private Services](.github/images/private-services-admin.jpg)
 
-![Admin Dashboard](.github/images/admin-dashboard.jpg)
-*Admin dashboard with real-time statistics and API management*
+### Public Status Page Showing Public Services and Recent Incidents
+![Public Services and Incidents](.github/images/public-services-incidents.jpg)
 
-</div>
+### Admin Dashboard - All Monitored Services
+![Admin Dashboard](.github/images/admin-dashboard-services.jpg)
 
-### Private Services & Incident Management
+### Webhook Configuration
+![Webhook Settings](.github/images/webhook-configuration.jpg)
 
-<table>
-  <tr>
-    <td width="50%">
-      <img src=".github/images/private-services.jpg" alt="Private Services"/>
-      <p align="center"><em>Private services monitoring (admin-only view)</em></p>
-    </td>
-    <td width="50%">
-      <img src=".github/images/incident-reporting.jpg" alt="Incident Reporting"/>
-      <p align="center"><em>Comprehensive incident tracking and reporting</em></p>
-    </td>
-  </tr>
-</table>
+### System Settings (Logo, Branding, Customization)
+![System Settings](.github/images/system-settings-branding.jpg)
 
-### Settings & Configuration
+### Mobile View - Public Status Page
+![Mobile Public Status](.github/images/mobile-public-status.jpg)
 
-<table>
-  <tr>
-    <td width="50%">
-      <img src=".github/images/webhook-settings.jpg" alt="Webhook Settings"/>
-      <p align="center"><em>Webhook configuration for real-time alerts</em></p>
-    </td>
-    <td width="50%">
-      <img src=".github/images/system-settings.jpg" alt="System Settings"/>
-      <p align="center"><em>System settings for branding and customization</em></p>
-    </td>
-  </tr>
-</table>
-
-### Mobile Responsive
-
-<table>
-  <tr>
-    <td width="50%">
-      <img src=".github/images/mobile-public.jpg" alt="Mobile Public View"/>
-      <p align="center"><em>Mobile-optimized public status page</em></p>
-    </td>
-    <td width="50%">
-      <img src=".github/images/mobile-admin.jpg" alt="Mobile Admin View"/>
-      <p align="center"><em>Mobile-friendly admin dashboard</em></p>
-    </td>
-  </tr>
-</table>
+### Mobile View - Admin Dashboard
+![Mobile Admin Dashboard](.github/images/mobile-admin-dashboard.jpg)
 
 ---
 
