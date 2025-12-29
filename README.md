@@ -8,7 +8,7 @@
 
 A comprehensive, self-hosted status monitoring system for tracking API uptime, incidents, and service health with automated alerts and beautiful visualizations.
 
-[Features](#features) • [Screenshots](#screenshots) • [Quick Start](#quick-start) • [Deployment](#deployment)
+[Features](#features) • [Quick Start](#quick-start) • [Screenshots](#screenshots) • [Configuration](#configuration)
 
 </div>
 
@@ -66,6 +66,33 @@ Perfect for SaaS companies, development teams, and anyone who needs to monitor A
 ---
 
 ## 🚀 Quick Start
+
+### 🎯 One-Command Installation (Recommended for Production)
+
+Deploy Status Monitor to your Ubuntu/Debian server with a single command:
+
+```bash
+curl -sSL https://raw.githubusercontent.com/pabbly-apps/pabbly-status-uptime-monitoring/main/install.sh | sudo bash
+```
+
+**What it does:**
+- ✅ Installs all dependencies (Node.js, PostgreSQL, Nginx, PM2, Certbot)
+- ✅ Sets up database with secure auto-generated passwords
+- ✅ Configures Nginx reverse proxy
+- ✅ Installs SSL certificate with Let's Encrypt
+- ✅ Starts application with PM2 process manager
+- ✅ Configures firewall (UFW)
+- ✅ Sets up auto-start on server reboot
+
+**You'll only be asked:**
+- Your domain name (e.g., `status.yourdomain.com`)
+- Admin email for login
+
+**Installation time:** ~10 minutes
+
+---
+
+### 🛠️ Manual Local Development Setup
 
 ### Prerequisites
 
@@ -231,20 +258,12 @@ VITE_API_URL=http://localhost:5000/api
 
 ---
 
-## 🌐 Deployment
+## 📘 Advanced Documentation
 
-For production deployment on cloud servers, see our deployment guide:
+For manual deployment or advanced configuration options:
 
-📘 **[Deployment Guide](docs/DEPLOYMENT.md)** - Complete production deployment walkthrough
-
-**Features:**
-- Ubuntu 22.04 LTS setup
-- Nginx reverse proxy
-- SSL with Let's Encrypt
-- PM2 process management
-- Automated deployment scripts
-
-**Deployment time:** ~15 minutes
+- **[Deployment Guide](docs/DEPLOYMENT.md)** - Complete production deployment walkthrough
+- **[Configuration Guide](docs/CONFIGURATION.md)** - Advanced configuration options
 
 ---
 
