@@ -156,21 +156,17 @@ curl -sSL https://raw.githubusercontent.com/pabbly-apps/pabbly-status-uptime-mon
 Copy \`.env.example\` to \`.env\` and configure:
 
 \`\`\`env
-# Database
 DATABASE_URL=postgresql://postgres:YOUR_PASSWORD@localhost:5432/status_monitor
 
-# JWT Authentication (Generate using: openssl rand -base64 32)
 JWT_SECRET=CHANGE_THIS_TO_A_STRONG_RANDOM_SECRET
 JWT_EXPIRY=7d
 
-# Server
 PORT=5000
 NODE_ENV=development
 PING_INTERVAL_MINUTES=1
 LOG_RETENTION_DAYS=90
 FRONTEND_URL=http://localhost:5173
 
-# Email Notifications (Optional)
 SMTP_HOST=smtp.gmail.com
 SMTP_PORT=587
 SMTP_USER=your-email@gmail.com
