@@ -8,7 +8,7 @@
 
 A comprehensive, self-hosted status monitoring system for tracking API uptime, incidents, and service health with automated alerts and beautiful visualizations.
 
-[Features](#features) • [Quick Start](#quick-start) • [Screenshots](#screenshots) • [Configuration](#configuration)
+[Features](#-features) • [Quick Start](#-quick-start) • [Screenshots](#-screenshots) • [Configuration](#-configuration)
 
 </div>
 
