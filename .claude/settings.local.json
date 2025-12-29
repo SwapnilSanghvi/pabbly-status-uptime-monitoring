@@ -37,7 +37,8 @@
       "Bash(ls:*)",
       "Bash(cat:*)",
       "Bash(del \"c:\\\\Users\\\\Magnet Brains\\\\Desktop\\\\exp\\\\status-monitor\\\\database\\\\migrations\\\\*.sql\")",
-      "Bash(tree:*)"
+      "Bash(tree:*)",
+      "Bash(rm:*)"
     ]
   }
 }
