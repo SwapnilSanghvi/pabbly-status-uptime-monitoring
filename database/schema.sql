@@ -1,0 +1,233 @@
+-- ============================================================================
+-- Status Monitor Database Schema
+-- ============================================================================
+-- This schema creates all tables with their final structure.
+-- No migrations needed - this is the complete, production-ready schema.
+-- ============================================================================
+
+-- ============================================================================
+-- 1. ADMIN USER TABLE
+-- ============================================================================
+-- Stores admin user credentials and profile information
+CREATE TABLE IF NOT EXISTS admin_user (
+  id SERIAL PRIMARY KEY,
+  email VARCHAR(255) UNIQUE NOT NULL,
+  password_hash TEXT NOT NULL,
+  full_name VARCHAR(255),
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  last_login TIMESTAMP
+);
+
+-- Index for faster email lookups during login
+CREATE INDEX IF NOT EXISTS idx_admin_email ON admin_user(email);
+
+
+-- ============================================================================
+-- 2. SYSTEM SETTINGS TABLE
+-- ============================================================================
+-- Single-row table for global application settings
+CREATE TABLE IF NOT EXISTS system_settings (
+  id INTEGER PRIMARY KEY DEFAULT 1,
+  page_title VARCHAR(255) DEFAULT 'System Status',
+  logo_url TEXT,
+  brand_color VARCHAR(7) DEFAULT '#3b82f6',
+  custom_message TEXT,
+  notification_email VARCHAR(255),
+  notifications_enabled BOOLEAN DEFAULT FALSE,
+  webhook_url TEXT,
+  webhook_enabled BOOLEAN DEFAULT FALSE,
+  data_retention_days INTEGER DEFAULT 90,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+  -- Ensure only one row exists
+  CONSTRAINT single_row CHECK (id = 1)
+);
+
+-- Insert default settings row
+INSERT INTO system_settings (id, page_title, brand_color, notifications_enabled, webhook_enabled, data_retention_days)
+VALUES (1, 'System Status', '#3b82f6', FALSE, FALSE, 90)
+ON CONFLICT (id) DO NOTHING;
+
+
+-- ============================================================================
+-- 3. APIS TABLE
+-- ============================================================================
+-- Stores all APIs/services being monitored
+CREATE TABLE IF NOT EXISTS apis (
+  id SERIAL PRIMARY KEY,
+  name VARCHAR(255) NOT NULL,
+  url TEXT NOT NULL,
+  monitoring_interval INTEGER DEFAULT 60, -- seconds
+  expected_status_code INTEGER DEFAULT 200,
+  timeout_duration INTEGER DEFAULT 30000, -- milliseconds
+  is_active BOOLEAN DEFAULT TRUE,
+  is_public BOOLEAN DEFAULT TRUE, -- visible on public status page
+  display_order INTEGER DEFAULT 0, -- for custom ordering on status page
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Indexes for performance
+CREATE INDEX IF NOT EXISTS idx_apis_is_active ON apis(is_active);
+CREATE INDEX IF NOT EXISTS idx_apis_name ON apis(name);
+CREATE INDEX IF NOT EXISTS idx_apis_display_order ON apis(display_order);
+CREATE INDEX IF NOT EXISTS idx_apis_is_public ON apis(is_public);
+
+-- Column comments for documentation
+COMMENT ON COLUMN apis.is_public IS 'Whether the API is visible on public status page (true) or only to logged-in admins (false)';
+COMMENT ON COLUMN apis.display_order IS 'Order in which APIs appear on the status page (lower numbers first)';
+
+
+-- ============================================================================
+-- 4. PING LOGS TABLE
+-- ============================================================================
+-- Stores all ping/health check results
+CREATE TABLE IF NOT EXISTS ping_logs (
+  id SERIAL PRIMARY KEY,
+  api_id INTEGER REFERENCES apis(id) ON DELETE CASCADE,
+  status VARCHAR(20) NOT NULL, -- 'success', 'failure', 'timeout'
+  status_code INTEGER,
+  response_time INTEGER, -- milliseconds
+  error_message TEXT,
+  response_body TEXT, -- Full response body when ping fails (truncated to 50KB max)
+  response_headers JSONB, -- HTTP response headers as JSON when ping fails
+  pinged_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Indexes for efficient querying
+CREATE INDEX IF NOT EXISTS idx_ping_logs_api_id ON ping_logs(api_id);
+CREATE INDEX IF NOT EXISTS idx_ping_logs_pinged_at ON ping_logs(pinged_at);
+CREATE INDEX IF NOT EXISTS idx_ping_logs_api_pinged ON ping_logs(api_id, pinged_at DESC);
+
+-- Column comments for documentation
+COMMENT ON COLUMN ping_logs.response_body IS 'Full response body text when ping fails (truncated to 50KB max)';
+COMMENT ON COLUMN ping_logs.response_headers IS 'HTTP response headers as JSON when ping fails';
+
+
+-- ============================================================================
+-- 5. INCIDENTS TABLE
+-- ============================================================================
+-- Tracks downtime incidents for each API
+CREATE TABLE IF NOT EXISTS incidents (
+  id SERIAL PRIMARY KEY,
+  api_id INTEGER REFERENCES apis(id) ON DELETE CASCADE,
+  title VARCHAR(255) NOT NULL,
+  description TEXT,
+  status VARCHAR(50) DEFAULT 'ongoing', -- 'ongoing', 'identified', 'monitoring', 'resolved'
+  started_at TIMESTAMP NOT NULL,
+  resolved_at TIMESTAMP,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Indexes for performance
+CREATE INDEX IF NOT EXISTS idx_incidents_api_id ON incidents(api_id);
+CREATE INDEX IF NOT EXISTS idx_incidents_status ON incidents(status);
+CREATE INDEX IF NOT EXISTS idx_incidents_started_at ON incidents(started_at DESC);
+
+-- Column comments for documentation
+COMMENT ON COLUMN incidents.status IS 'Current incident status: ongoing, identified, monitoring, or resolved';
+
+
+-- ============================================================================
+-- 6. UPTIME SUMMARIES TABLE
+-- ============================================================================
+-- Pre-calculated uptime statistics for different time periods
+CREATE TABLE IF NOT EXISTS uptime_summaries (
+  id SERIAL PRIMARY KEY,
+  api_id INTEGER REFERENCES apis(id) ON DELETE CASCADE,
+  period VARCHAR(20) NOT NULL, -- '24h', '7d', '30d', '90d'
+  uptime_percentage DECIMAL(5,2),
+  total_pings INTEGER,
+  successful_pings INTEGER,
+  failed_pings INTEGER,
+  avg_response_time INTEGER,
+  calculated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+  -- Ensure only one summary per API per period
+  UNIQUE(api_id, period)
+);
+
+-- Index for fast lookups
+CREATE INDEX IF NOT EXISTS idx_uptime_summaries_api_period ON uptime_summaries(api_id, period);
+
+
+-- ============================================================================
+-- 7. WEBHOOK LOGS TABLE
+-- ============================================================================
+-- Audit trail for all webhook deliveries
+CREATE TABLE IF NOT EXISTS webhook_logs (
+  id SERIAL PRIMARY KEY,
+  webhook_url TEXT NOT NULL,
+  event_type VARCHAR(50) NOT NULL, -- 'api_down', 'api_up'
+  api_id INTEGER REFERENCES apis(id) ON DELETE CASCADE,
+  incident_id INTEGER REFERENCES incidents(id) ON DELETE SET NULL,
+  payload JSONB NOT NULL,
+  status_code INTEGER,
+  success BOOLEAN NOT NULL,
+  error_message TEXT,
+  response_time INTEGER, -- milliseconds
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Indexes for common queries
+CREATE INDEX IF NOT EXISTS idx_webhook_logs_api_id ON webhook_logs(api_id);
+CREATE INDEX IF NOT EXISTS idx_webhook_logs_created_at ON webhook_logs(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_webhook_logs_success ON webhook_logs(success);
+CREATE INDEX IF NOT EXISTS idx_webhook_logs_event_type ON webhook_logs(event_type);
+
+
+-- ============================================================================
+-- SEED DATA
+-- ============================================================================
+-- Initial data for first-time setup
+-- ============================================================================
+
+-- ============================================================================
+-- DEFAULT ADMIN USER
+-- ============================================================================
+-- Creates a default admin account for initial login
+-- IMPORTANT: Change the password immediately after first login for security!
+--
+-- Default Credentials:
+--   Email: admin@example.com
+--   Password: 251251
+--
+-- After logging in, go to Settings > Profile to change your password
+
+INSERT INTO admin_user (email, password_hash, full_name)
+VALUES (
+  'admin@example.com',
+  '$2b$10$.p5GZF4uDc6sa1ScC3TnAusIknz1KedVnZEaQwpOSdB9pGinh2cBu',
+  'System Administrator'
+)
+ON CONFLICT (email) DO NOTHING;
+
+
+-- ============================================================================
+-- SAMPLE APIS (Optional - for testing)
+-- ============================================================================
+-- These are sample APIs to demonstrate the monitoring functionality
+-- You can delete these and add your own APIs through the admin dashboard
+
+INSERT INTO apis (name, url, expected_status_code, is_active) VALUES
+  ('Google Homepage', 'https://www.google.com', 200, TRUE),
+  ('GitHub API', 'https://api.github.com', 200, TRUE),
+  ('JSONPlaceholder API', 'https://jsonplaceholder.typicode.com/posts/1', 200, TRUE)
+ON CONFLICT DO NOTHING;
+
+
+-- ============================================================================
+-- DATABASE SETUP COMPLETE
+-- ============================================================================
+-- Your Status Monitor database is now ready to use!
+--
+-- Next steps:
+-- 1. Start the backend server: cd backend && npm run dev
+-- 2. Start the frontend: cd frontend && npm run dev
+-- 3. Login at http://localhost:5173/admin/login
+--    Email: admin@example.com
+--    Password: 251251
+-- 4. IMPORTANT: Change your password immediately after logging in!
+-- ============================================================================

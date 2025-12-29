@@ -32,7 +32,12 @@
       "Bash(git push:*)",
       "Bash(git -C \"c:\\\\Users\\\\Magnet Brains\\\\Desktop\\\\exp\\\\status-monitor\" log --oneline -20)",
       "Bash(npm run migrate:*)",
-      "Bash(powershell \"Stop-Process -Id 151728 -Force\")"
+      "Bash(powershell \"Stop-Process -Id 151728 -Force\")",
+      "Bash(cd:*)",
+      "Bash(ls:*)",
+      "Bash(cat:*)",
+      "Bash(del \"c:\\\\Users\\\\Magnet Brains\\\\Desktop\\\\exp\\\\status-monitor\\\\database\\\\migrations\\\\*.sql\")",
+      "Bash(tree:*)"
     ]
   }
 }
