@@ -124,7 +124,7 @@ PORT=5000
 NODE_ENV=production
 PING_INTERVAL_MINUTES=1
 LOG_RETENTION_DAYS=90
-FRONTEND_URL=https://monitor.pabbly.com
+FRONTEND_URL=https://status.yourdomain.com
 ```
 
 ### 4.4 Setup Frontend
@@ -138,7 +138,7 @@ nano .env
 
 Add:
 ```env
-VITE_API_URL=https://monitor.pabbly.com/api
+VITE_API_URL=https://status.yourdomain.com/api
 ```
 
 Build frontend:
@@ -175,7 +175,7 @@ Add the following configuration:
 ```nginx
 server {
     listen 80;
-    server_name monitor.pabbly.com;
+    server_name status.yourdomain.com;
 
     # Frontend - Serve built React app
     root /root/pabbly-status-uptime-monitoring/frontend/dist;
@@ -226,7 +226,7 @@ apt install -y certbot python3-certbot-nginx
 
 ### 7.2 Obtain SSL certificate
 ```bash
-certbot --nginx -d monitor.pabbly.com
+certbot --nginx -d status.yourdomain.com
 ```
 
 Follow the prompts. Certbot will automatically configure Nginx for HTTPS.
@@ -248,7 +248,7 @@ ufw status
 ## Step 9: Post-Deployment Steps
 
 ### 9.1 Change default admin password
-1. Visit https://monitor.pabbly.com/admin/login
+1. Visit https://status.yourdomain.com/admin/login
 2. Login with default credentials (see database seed file)
 3. Go to Settings and change your password immediately
 4. Update your email if needed

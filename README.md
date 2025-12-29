@@ -139,7 +139,7 @@ curl -sSL https://raw.githubusercontent.com/pabbly-apps/pabbly-status-uptime-mon
    - **Public Status Page**: http://localhost:5173
    - **Admin Login**: http://localhost:5173/admin/login
      - Email: \`admin@example.com\`
-     - Password: \`251251\`
+     - Password: \`admin123\`
      - **⚠️ Change this password immediately after first login!**
 
 ---
@@ -185,7 +185,7 @@ VITE_API_URL=http://localhost:5000/api
 
 ### Important Security Steps
 
-1. **Change Default Credentials** - After installation, immediately log in and change the admin password from \`251251\`
+1. **Change Default Credentials** - After installation, immediately log in and change the admin password from \`admin123\`
 
 2. **Generate Strong JWT Secret**
    \`\`\`bash

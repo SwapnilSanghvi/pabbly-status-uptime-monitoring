@@ -192,14 +192,14 @@ CREATE INDEX IF NOT EXISTS idx_webhook_logs_event_type ON webhook_logs(event_typ
 --
 -- Default Credentials:
 --   Email: admin@example.com
---   Password: 251251
+--   Password: admin123
 --
 -- After logging in, go to Settings > Profile to change your password
 
 INSERT INTO admin_user (email, password_hash, full_name)
 VALUES (
   'admin@example.com',
-  '$2b$10$.p5GZF4uDc6sa1ScC3TnAusIknz1KedVnZEaQwpOSdB9pGinh2cBu',
+  '$2b$10$VOgA.0dig5CThvoXu3JZteOHp5hVLygMmbF9dOP4rHOvLqHEMLAlK',
   'System Administrator'
 )
 ON CONFLICT (email) DO NOTHING;
@@ -228,6 +228,6 @@ ON CONFLICT DO NOTHING;
 -- 2. Start the frontend: cd frontend && npm run dev
 -- 3. Login at http://localhost:5173/admin/login
 --    Email: admin@example.com
---    Password: 251251
+--    Password: admin123
 -- 4. IMPORTANT: Change your password immediately after logging in!
 -- ============================================================================

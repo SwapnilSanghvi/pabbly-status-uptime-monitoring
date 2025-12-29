@@ -408,7 +408,7 @@ cp database/schema.sql /tmp/schema_temp.sql
 
 # Replace admin email and password in schema
 sed -i "s/'admin@example.com'/'$ADMIN_EMAIL'/g" /tmp/schema_temp.sql
-sed -i "s/\\\$2b\\\$10\\\$\.p5GZF4uDc6sa1ScC3TnAusIknz1KedVnZEaQwpOSdB9pGinh2cBu/$HASHED_PASSWORD/g" /tmp/schema_temp.sql
+sed -i "s/\\\$2b\\\$10\\\$VOgA\\.0dig5CThvoXu3JZteOHp5hVLygMmbF9dOP4rHOvLqHEMLAlK/$HASHED_PASSWORD/g" /tmp/schema_temp.sql
 
 # Run schema
 PGPASSWORD=$DB_PASSWORD psql -h localhost -U $DB_USER -d $DB_NAME -f /tmp/schema_temp.sql > /dev/null 2>&1

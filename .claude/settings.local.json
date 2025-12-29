@@ -38,7 +38,8 @@
       "Bash(cat:*)",
       "Bash(del \"c:\\\\Users\\\\Magnet Brains\\\\Desktop\\\\exp\\\\status-monitor\\\\database\\\\migrations\\\\*.sql\")",
       "Bash(tree:*)",
-      "Bash(rm:*)"
+      "Bash(rm:*)",
+      "Bash(git grep:*)"
     ]
   }
 }
