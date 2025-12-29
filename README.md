@@ -3,7 +3,7 @@
 <div align="center">
 
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
-![Node](https://img.shields.io/badge/node-%3E%3D18.0.0-brightgreen.svg)
+![Node](https://img.shields.io/badge/node-%3E%3D22.0.0-brightgreen.svg)
 ![PostgreSQL](https://img.shields.io/badge/postgresql-%3E%3D14.0-blue.svg)
 
 A comprehensive, self-hosted status monitoring system for tracking API uptime, incidents, and service health with automated alerts and beautiful visualizations.
@@ -60,7 +60,7 @@ Perfect for SaaS companies, development teams, and anyone who needs to monitor A
 - 🚀 **Production Ready** - Battle-tested with proper error handling
 - 🔒 **Secure** - Bcrypt password hashing, JWT authentication
 - 📱 **Mobile Responsive** - Works perfectly on all devices
-- 🎨 **Modern Stack** - React 18, Node.js, PostgreSQL, TailwindCSS
+- 🎨 **Modern Stack** - React 19, Node.js 22, PostgreSQL, TailwindCSS
 - 🐳 **Easy Deployment** - Simple setup on any Ubuntu server
 
 ---
@@ -96,7 +96,7 @@ curl -sSL https://raw.githubusercontent.com/pabbly-apps/pabbly-status-uptime-mon
 
 ### Prerequisites
 
-- **Node.js** 18+ ([Download](https://nodejs.org/))
+- **Node.js** 22+ ([Download](https://nodejs.org/))
 - **PostgreSQL** 14+ ([Download](https://www.postgresql.org/download/))
 - **npm** or **yarn**
 
@@ -207,7 +207,7 @@ VITE_API_URL=http://localhost:5000/api
 ## 🏗️ Tech Stack
 
 ### Frontend
-- React 18, Vite, TailwindCSS
+- React 19, Vite, TailwindCSS
 - React Router, Recharts, React Hot Toast
 - Date-fns, Axios, Lucide Icons
 
