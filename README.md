@@ -8,7 +8,7 @@
 
 A comprehensive, self-hosted status monitoring system for tracking API uptime, incidents, and service health with automated alerts and beautiful visualizations.
 
-**[🌐 View Live Demo](https://monitor.pabbly.com/)** | [Features](#-features) • [Quick Start](#-quick-start) • [Screenshots](#-screenshots) • [Configuration](#-configuration)
+<a href="https://monitor.pabbly.com/" target="_blank"><strong>🌐 View Live Demo</strong></a> | [Features](#-features) • [Quick Start](#-quick-start) • [Screenshots](#-screenshots) • [Configuration](#-configuration)
 
 </div>
 
@@ -24,6 +24,10 @@ Status Monitor is a production-ready, open-source uptime monitoring solution tha
 - **Automated Alerts**: Webhook and email notifications for downtime
 - **Historical Analytics**: 90-day uptime tracking with drill-down capability
 - **Incident Management**: Automatic detection and resolution tracking
+
+### 🎯 What Makes It Different?
+
+Unlike traditional status pages that only show *when* downtime occurred, Status Monitor goes further by capturing and displaying **exact API responses** during failures. Click on any downtime event to see the actual error response, status codes, and response times - making debugging and root cause analysis significantly easier.
 
 Perfect for SaaS companies, development teams, and anyone who needs to monitor API uptime and communicate service status to users.
 
@@ -43,7 +47,8 @@ Perfect for SaaS companies, development teams, and anyone who needs to monitor A
 - 🌐 **Clean Status Page** - Beautiful, responsive public status display
 - 📅 **90-Day Calendar View** - Visual heatmap of service health
 - 📉 **Response Time Charts** - Hourly aggregated performance data
-- 🔍 **Detailed Drill-Down** - View any specific day's ping data
+- 🔍 **Detailed Drill-Down** - View any specific day's ping data with exact API responses
+- 💡 **Error Response Visibility** - See actual error messages, status codes, and responses during downtime
 - 🕐 **Timezone Support** - Display times in user's local timezone
 - ♻️ **Auto-Refresh** - Real-time updates every 30 seconds
 
