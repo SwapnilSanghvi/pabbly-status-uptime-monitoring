@@ -117,7 +117,7 @@ echo ""
 
 # 1. Domain Name
 while true; do
-    read -p "Enter your domain (e.g., status.example.com): " DOMAIN
+    read -p "Enter your domain (e.g., status.example.com): " DOMAIN </dev/tty
     if [[ -z "$DOMAIN" ]]; then
         echo -e "${RED}Domain cannot be empty!${NC}"
     elif [[ ! "$DOMAIN" =~ ^[a-zA-Z0-9][-a-zA-Z0-9]*\.[a-zA-Z0-9][-\.a-zA-Z0-9]*$ ]]; then
@@ -129,7 +129,7 @@ done
 
 # 2. Admin Email
 while true; do
-    read -p "Enter admin email for login: " ADMIN_EMAIL
+    read -p "Enter admin email for login: " ADMIN_EMAIL </dev/tty
     if [[ -z "$ADMIN_EMAIL" ]]; then
         echo -e "${RED}Email cannot be empty!${NC}"
     elif [[ ! "$ADMIN_EMAIL" =~ ^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$ ]]; then
