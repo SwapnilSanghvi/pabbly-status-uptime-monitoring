@@ -60,7 +60,37 @@ ON CONFLICT (id) DO NOTHING;
 
 
 -- ============================================================================
--- 3. APIS TABLE
+-- 3. API GROUPS TABLE
+-- ============================================================================
+-- Stores API groups for organizing monitored services
+CREATE TABLE IF NOT EXISTS api_groups (
+  id SERIAL PRIMARY KEY,
+  name VARCHAR(255) NOT NULL UNIQUE,
+  description TEXT,
+  display_order INTEGER DEFAULT 0,
+  is_collapsed BOOLEAN DEFAULT FALSE,
+  is_default BOOLEAN DEFAULT FALSE,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Indexes for performance
+CREATE INDEX IF NOT EXISTS idx_api_groups_display_order ON api_groups(display_order);
+CREATE INDEX IF NOT EXISTS idx_api_groups_name ON api_groups(name);
+CREATE INDEX IF NOT EXISTS idx_api_groups_is_default ON api_groups(is_default);
+
+-- Insert default group with fixed ID
+-- Using ON CONFLICT DO NOTHING on id to allow safe re-runs
+INSERT INTO api_groups (id, name, description, display_order, is_collapsed, is_default)
+VALUES (1, 'Ungrouped', 'APIs without a specific group', 999, FALSE, TRUE)
+ON CONFLICT (id) DO NOTHING;
+
+-- Set the sequence to start from 2 to avoid conflicts with the default group
+SELECT setval('api_groups_id_seq', (SELECT GREATEST(2, MAX(id) + 1) FROM api_groups), false);
+
+
+-- ============================================================================
+-- 4. APIS TABLE
 -- ============================================================================
 -- Stores all APIs/services being monitored
 CREATE TABLE IF NOT EXISTS apis (
@@ -73,6 +103,7 @@ CREATE TABLE IF NOT EXISTS apis (
   is_active BOOLEAN DEFAULT TRUE,
   is_public BOOLEAN DEFAULT TRUE, -- visible on public status page
   display_order INTEGER DEFAULT 0, -- for custom ordering on status page
+  group_id INTEGER REFERENCES api_groups(id) ON DELETE SET NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
@@ -82,14 +113,16 @@ CREATE INDEX IF NOT EXISTS idx_apis_is_active ON apis(is_active);
 CREATE INDEX IF NOT EXISTS idx_apis_name ON apis(name);
 CREATE INDEX IF NOT EXISTS idx_apis_display_order ON apis(display_order);
 CREATE INDEX IF NOT EXISTS idx_apis_is_public ON apis(is_public);
+CREATE INDEX IF NOT EXISTS idx_apis_group_id ON apis(group_id);
 
 -- Column comments for documentation
 COMMENT ON COLUMN apis.is_public IS 'Whether the API is visible on public status page (true) or only to logged-in admins (false)';
 COMMENT ON COLUMN apis.display_order IS 'Order in which APIs appear on the status page (lower numbers first)';
+COMMENT ON COLUMN apis.group_id IS 'Foreign key to api_groups table for organizing APIs into groups';
 
 
 -- ============================================================================
--- 4. PING LOGS TABLE
+-- 5. PING LOGS TABLE
 -- ============================================================================
 -- Stores all ping/health check results
 CREATE TABLE IF NOT EXISTS ping_logs (
@@ -115,7 +148,7 @@ COMMENT ON COLUMN ping_logs.response_headers IS 'HTTP response headers as JSON w
 
 
 -- ============================================================================
--- 5. INCIDENTS TABLE
+-- 6. INCIDENTS TABLE
 -- ============================================================================
 -- Tracks downtime incidents for each API
 CREATE TABLE IF NOT EXISTS incidents (
@@ -140,7 +173,7 @@ COMMENT ON COLUMN incidents.status IS 'Current incident status: ongoing, identif
 
 
 -- ============================================================================
--- 6. UPTIME SUMMARIES TABLE
+-- 7. UPTIME SUMMARIES TABLE
 -- ============================================================================
 -- Pre-calculated uptime statistics for different time periods
 CREATE TABLE IF NOT EXISTS uptime_summaries (
@@ -163,7 +196,7 @@ CREATE INDEX IF NOT EXISTS idx_uptime_summaries_api_period ON uptime_summaries(a
 
 
 -- ============================================================================
--- 7. WEBHOOK LOGS TABLE
+-- 8. WEBHOOK LOGS TABLE
 -- ============================================================================
 -- Audit trail for all webhook deliveries
 CREATE TABLE IF NOT EXISTS webhook_logs (

@@ -40,7 +40,10 @@
       "Bash(tree:*)",
       "Bash(rm:*)",
       "Bash(git grep:*)",
-      "Bash(bash:*)"
+      "Bash(bash:*)",
+      "Bash(set PGPASSWORD=251251)",
+      "Bash(powershell \"Get-Command psql -ErrorAction SilentlyContinue | Select-Object -ExpandProperty Source\")",
+      "Bash(powershell:*)"
     ]
   }
 }

@@ -9,6 +9,9 @@ export const getOverallStatus = async (req, res) => {
         a.id,
         a.name,
         a.url,
+        a.group_id,
+        g.name as group_name,
+        g.display_order as group_order,
         (
           SELECT status
           FROM ping_logs
@@ -31,8 +34,9 @@ export const getOverallStatus = async (req, res) => {
           LIMIT 1
         ) as last_checked
       FROM apis a
+      LEFT JOIN api_groups g ON a.group_id = g.id
       WHERE a.is_active = true AND a.is_public = true
-      ORDER BY a.display_order ASC, a.id ASC
+      ORDER BY g.display_order ASC, a.display_order ASC, a.id ASC
     `);
 
     // Get system settings for branding
@@ -89,6 +93,9 @@ export const getServices = async (req, res) => {
         a.id,
         a.name,
         a.url,
+        a.group_id,
+        g.name as group_name,
+        g.display_order as group_order,
         (
           SELECT status
           FROM ping_logs
@@ -111,8 +118,9 @@ export const getServices = async (req, res) => {
           LIMIT 1
         ) as last_checked
       FROM apis a
+      LEFT JOIN api_groups g ON a.group_id = g.id
       WHERE a.is_active = true AND a.is_public = true
-      ORDER BY a.display_order ASC, a.id ASC
+      ORDER BY g.display_order ASC, a.display_order ASC, a.id ASC
     `);
 
     // Mark as 'pending' if no pings exist yet
@@ -145,6 +153,9 @@ export const getAllServicesForAdmin = async (req, res) => {
         a.name,
         a.url,
         a.is_public,
+        a.group_id,
+        g.name as group_name,
+        g.display_order as group_order,
         (
           SELECT status
           FROM ping_logs
@@ -167,8 +178,9 @@ export const getAllServicesForAdmin = async (req, res) => {
           LIMIT 1
         ) as last_checked
       FROM apis a
+      LEFT JOIN api_groups g ON a.group_id = g.id
       WHERE a.is_active = true
-      ORDER BY a.is_public DESC, a.display_order ASC, a.id ASC
+      ORDER BY a.is_public DESC, g.display_order ASC, a.display_order ASC, a.id ASC
     `);
 
     // Mark as 'pending' if no pings exist yet

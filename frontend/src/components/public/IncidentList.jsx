@@ -80,11 +80,11 @@ export default function IncidentList({ incidents }) {
   }
 
   return (
-    <div className="space-y-6">
-      {incidents.map((incident) => (
+    <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
+      {incidents.map((incident, index) => (
         <div
           key={incident.id}
-          className="bg-white rounded-2xl border border-gray-200 p-6"
+          className={`px-6 py-10 ${index > 0 ? 'border-t border-gray-200' : ''}`}
         >
           {/* Header */}
           <div className="flex items-start justify-between gap-4 mb-4">
@@ -102,7 +102,7 @@ export default function IncidentList({ incidents }) {
           </div>
 
           {/* Timeline */}
-          <div className="pt-4 border-t border-gray-200">
+          <div className="pt-4 border-t border-gray-100">
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div className="flex items-start gap-2">
                 <svg className="h-4 w-4 text-gray-400 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">

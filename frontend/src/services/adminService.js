@@ -31,6 +31,37 @@ export const reorderAPIs = async (apiIds) => {
   return response.data;
 };
 
+// API Groups Management
+export const getAPIGroups = async () => {
+  const response = await api.get('/admin/api-groups');
+  return response.data;
+};
+
+export const getAPIGroup = async (id) => {
+  const response = await api.get(`/admin/api-groups/${id}`);
+  return response.data;
+};
+
+export const createAPIGroup = async (groupData) => {
+  const response = await api.post('/admin/api-groups', groupData);
+  return response.data;
+};
+
+export const updateAPIGroup = async (id, groupData) => {
+  const response = await api.put(`/admin/api-groups/${id}`, groupData);
+  return response.data;
+};
+
+export const deleteAPIGroup = async (id) => {
+  const response = await api.delete(`/admin/api-groups/${id}`);
+  return response.data;
+};
+
+export const reorderAPIGroups = async (groupIds) => {
+  const response = await api.put('/admin/api-groups-reorder', { groupIds });
+  return response.data;
+};
+
 // Dashboard Stats
 export const getDashboardStats = async () => {
   const response = await api.get('/admin/dashboard-stats');

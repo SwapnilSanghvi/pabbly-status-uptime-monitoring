@@ -45,6 +45,7 @@ Perfect for SaaS companies, development teams, and anyone who needs to monitor A
 
 ### Public Status Page
 - 🌐 **Clean Status Page** - Beautiful, responsive public status display
+- 📁 **Grouped Services** - Services organized into collapsible groups for better navigation
 - 📅 **90-Day Calendar View** - Visual heatmap of service health
 - 📉 **Response Time Charts** - Hourly aggregated performance data
 - 🔍 **Detailed Drill-Down** - View any specific day's ping data with exact API responses
@@ -54,6 +55,8 @@ Perfect for SaaS companies, development teams, and anyone who needs to monitor A
 
 ### Admin Dashboard
 - 🎛️ **API Management** - Add, edit, delete, and reorder monitored services
+- 📁 **API Groups** - Organize services into collapsible groups (e.g., by product, team, or environment)
+- 🔄 **Drag & Drop Ordering** - Reorder both groups and APIs within groups
 - 📊 **Dashboard Stats** - Real-time overview of system health
 - 🔐 **Secure Authentication** - JWT-based admin access
 - ⚙️ **Customization** - Branding, colors, and messaging

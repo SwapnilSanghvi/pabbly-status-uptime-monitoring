@@ -5,6 +5,7 @@ import { getDashboardStats, getAllAPIs } from '../services/adminService';
 import QuickStats from '../components/admin/QuickStats';
 import APITable from '../components/admin/APITable';
 import AddAPIModal from '../components/admin/AddAPIModal';
+import GroupManageModal from '../components/admin/GroupManageModal';
 import Loading from '../components/shared/Loading';
 import { TimezoneProvider } from '../contexts/TimezoneContext';
 import toast from 'react-hot-toast';
@@ -17,6 +18,7 @@ function AdminDashboardContent() {
   const [apis, setApis] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isGroupModalOpen, setIsGroupModalOpen] = useState(false);
   const [editingAPI, setEditingAPI] = useState(null);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
 
@@ -94,11 +96,13 @@ function AdminDashboardContent() {
             <div className="flex flex-col items-center gap-3">
               {/* Logo */}
               {settings?.logo_url && (
-                <img
-                  src={`${import.meta.env.VITE_API_URL.replace('/api', '')}${settings.logo_url}`}
-                  alt="Logo"
-                  className="h-8 w-auto object-contain"
-                />
+                <a href="/admin/dashboard" className="inline-block">
+                  <img
+                    src={`${import.meta.env.VITE_API_URL.replace('/api', '')}${settings.logo_url}`}
+                    alt="Logo"
+                    className="h-8 w-auto object-contain cursor-pointer hover:opacity-80 transition-opacity"
+                  />
+                </a>
               )}
               <h1 className="text-lg font-bold text-gray-900">Admin Dashboard</h1>
 
@@ -173,11 +177,13 @@ function AdminDashboardContent() {
             <div>
               {/* Logo */}
               {settings?.logo_url && (
-                <img
-                  src={`${import.meta.env.VITE_API_URL.replace('/api', '')}${settings.logo_url}`}
-                  alt="Logo"
-                  className="h-8 sm:h-10 w-auto object-contain mb-2"
-                />
+                <a href="/admin/dashboard" className="inline-block mb-2">
+                  <img
+                    src={`${import.meta.env.VITE_API_URL.replace('/api', '')}${settings.logo_url}`}
+                    alt="Logo"
+                    className="h-8 sm:h-10 w-auto object-contain cursor-pointer hover:opacity-80 transition-opacity"
+                  />
+                </a>
               )}
               <h1 className="text-lg sm:text-xl font-bold text-gray-900">Admin Dashboard</h1>
             </div>
@@ -252,16 +258,28 @@ function AdminDashboardContent() {
         <div className="mb-6">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
             <h2 className="text-lg sm:text-xl font-semibold text-gray-900 text-center sm:text-left">Monitored APIs</h2>
-            <button
-              onClick={handleAddClick}
-              className="inline-flex items-center justify-center px-3 sm:px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 whitespace-nowrap"
-            >
-              <svg className="h-4 w-4 sm:h-5 sm:w-5 mr-1.5 sm:mr-2 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-              </svg>
-              <span className="hidden sm:inline">Add Service to Monitor</span>
-              <span className="sm:hidden">Add Service</span>
-            </button>
+            <div className="flex flex-col sm:flex-row gap-2">
+              <button
+                onClick={() => setIsGroupModalOpen(true)}
+                className="inline-flex items-center justify-center px-3 sm:px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 whitespace-nowrap"
+              >
+                <svg className="h-4 w-4 sm:h-5 sm:w-5 mr-1.5 sm:mr-2 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+                </svg>
+                <span className="hidden sm:inline">Manage Groups</span>
+                <span className="sm:hidden">Groups</span>
+              </button>
+              <button
+                onClick={handleAddClick}
+                className="inline-flex items-center justify-center px-3 sm:px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 whitespace-nowrap"
+              >
+                <svg className="h-4 w-4 sm:h-5 sm:w-5 mr-1.5 sm:mr-2 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                </svg>
+                <span className="hidden sm:inline">Add Service to Monitor</span>
+                <span className="sm:hidden">Add Service</span>
+              </button>
+            </div>
           </div>
 
           <APITable
@@ -292,6 +310,13 @@ function AdminDashboardContent() {
         onClose={handleModalClose}
         onSuccess={handleSuccess}
         editingAPI={editingAPI}
+      />
+
+      {/* Group Management Modal */}
+      <GroupManageModal
+        isOpen={isGroupModalOpen}
+        onClose={() => setIsGroupModalOpen(false)}
+        onSuccess={handleSuccess}
       />
     </div>
   );

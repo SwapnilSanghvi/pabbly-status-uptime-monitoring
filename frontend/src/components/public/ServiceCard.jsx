@@ -30,7 +30,7 @@ export default function ServiceCard({ service, onViewDetails }) {
       return {
         bgColor: 'bg-green-100 text-green-800',
         dotColor: 'bg-green-500',
-        text: 'Operational'
+        text: 'Up'
       };
     } else {
       return {

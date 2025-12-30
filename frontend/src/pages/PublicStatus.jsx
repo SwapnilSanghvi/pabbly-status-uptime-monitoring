@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { getOverallStatus, getUptimeStats, getRecentIncidents, getPrivateIncidents, getTimeline, getAllServicesForAdmin } from '../services/publicService';
 import StatusHeader from '../components/public/StatusHeader';
 import ServiceCard from '../components/public/ServiceCard';
@@ -25,9 +25,10 @@ function PublicStatusContent() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [privateServices, setPrivateServices] = useState([]);
   const [viewMode, setViewMode] = useState('public'); // 'public' or 'private'
+  const [collapsedGroups, setCollapsedGroups] = useState({});
 
   // Fetch all data
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     try {
       const [statusRes, uptimeRes, incidentsRes, timelineRes] = await Promise.all([
         getOverallStatus(),
@@ -66,7 +67,7 @@ function PublicStatusContent() {
       toast.error('Failed to load status data');
       setLoading(false);
     }
-  };
+  }, [isAuthenticated]);
 
   // Initial load and re-fetch when authentication changes
   useEffect(() => {
@@ -78,7 +79,65 @@ function PublicStatusContent() {
     }, 30000);
 
     return () => clearInterval(interval);
-  }, [isAuthenticated]);
+  }, [fetchData]);
+
+  // Merge uptime stats with services - must be called before early returns
+  const servicesWithUptime = useMemo(() => {
+    if (!statusData) return [];
+    return statusData.services.map((service) => {
+      const stats = uptimeStats.find((s) => s.id === service.id) || {};
+      return {
+        ...service,
+        uptime_24h: stats.uptime_24h,
+        uptime_7d: stats.uptime_7d,
+        uptime_30d: stats.uptime_30d,
+      };
+    });
+  }, [statusData, uptimeStats]);
+
+  // Merge uptime stats with private services
+  const privateServicesWithUptime = useMemo(() => {
+    return privateServices.map((service) => {
+      const stats = uptimeStats.find((s) => s.id === service.id) || {};
+      return {
+        ...service,
+        uptime_24h: stats.uptime_24h,
+        uptime_7d: stats.uptime_7d,
+        uptime_30d: stats.uptime_30d,
+      };
+    });
+  }, [privateServices, uptimeStats]);
+
+  // Calculate status for current view mode
+  const currentServices = viewMode === 'public' ? servicesWithUptime : privateServicesWithUptime;
+  const servicesDown = currentServices.filter(
+    (service) => service.current_status === 'failure' || service.current_status === 'timeout' || service.last_status === 'failure' || service.last_status === 'timeout'
+  ).length;
+  const totalServices = currentServices.length;
+
+  // Get incidents for current view mode
+  const currentIncidents = viewMode === 'public' ? incidents : privateIncidents;
+
+  // Group services by group_id
+  const groupedServices = useMemo(() => {
+    const grouped = {};
+    currentServices.forEach(service => {
+      const groupKey = service.group_id || 'ungrouped';
+      if (!grouped[groupKey]) {
+        grouped[groupKey] = {
+          id: service.group_id,
+          name: service.group_name || 'Services',
+          group_order: service.group_order !== undefined ? service.group_order : 999,
+          services: []
+        };
+      }
+      grouped[groupKey].services.push(service);
+    });
+
+    // Filter out empty groups and sort by group_order
+    const nonEmptyGroups = Object.values(grouped).filter(g => g.services.length > 0);
+    return nonEmptyGroups.sort((a, b) => a.group_order - b.group_order);
+  }, [currentServices]);
 
   const handleViewDetails = (service) => {
     setSelectedService(service);
@@ -110,37 +169,53 @@ function PublicStatusContent() {
     );
   }
 
-  // Merge uptime stats with services
-  const servicesWithUptime = statusData.services.map((service) => {
-    const stats = uptimeStats.find((s) => s.id === service.id) || {};
-    return {
-      ...service,
-      uptime_24h: stats.uptime_24h,
-      uptime_7d: stats.uptime_7d,
-      uptime_30d: stats.uptime_30d,
-    };
-  });
+  // Calculate group status based on visible services
+  const getGroupStatus = (services) => {
+    const downCount = services.filter(s =>
+      s.current_status === 'failure' ||
+      s.current_status === 'timeout' ||
+      s.last_status === 'failure' ||
+      s.last_status === 'timeout'
+    ).length;
 
-  // Merge uptime stats with private services
-  const privateServicesWithUptime = privateServices.map((service) => {
-    const stats = uptimeStats.find((s) => s.id === service.id) || {};
-    return {
-      ...service,
-      uptime_24h: stats.uptime_24h,
-      uptime_7d: stats.uptime_7d,
-      uptime_30d: stats.uptime_30d,
-    };
-  });
+    if (downCount === 0) return 'operational';
+    if (downCount === services.length) return 'major_outage';
+    return 'partial_outage';
+  };
 
-  // Calculate status for current view mode
-  const currentServices = viewMode === 'public' ? servicesWithUptime : privateServicesWithUptime;
-  const servicesDown = currentServices.filter(
-    (service) => service.current_status === 'failure' || service.current_status === 'timeout' || service.last_status === 'failure' || service.last_status === 'timeout'
-  ).length;
-  const totalServices = currentServices.length;
+  // Get status badge for groups
+  const getGroupStatusBadge = (status) => {
+    if (status === 'operational') {
+      return (
+        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+          <span className="h-2 w-2 rounded-full bg-green-500 mr-1.5"></span>
+          All Operational
+        </span>
+      );
+    }
+    if (status === 'major_outage') {
+      return (
+        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+          <span className="h-2 w-2 rounded-full bg-red-500 mr-1.5"></span>
+          Major Outage
+        </span>
+      );
+    }
+    return (
+      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+        <span className="h-2 w-2 rounded-full bg-yellow-500 mr-1.5"></span>
+        Partial Outage
+      </span>
+    );
+  };
 
-  // Get incidents for current view mode
-  const currentIncidents = viewMode === 'public' ? incidents : privateIncidents;
+  // Toggle group collapse
+  const toggleGroup = (groupId) => {
+    setCollapsedGroups(prev => ({
+      ...prev,
+      [groupId]: !prev[groupId]
+    }));
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -243,23 +318,69 @@ function PublicStatusContent() {
               </span>
             )}
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-y-10">
-            {currentServices.map((service) => (
-              <ServiceCard
-                key={service.id}
-                service={service}
-                onViewDetails={handleViewDetails}
-              />
-            ))}
-          </div>
 
-          {currentServices.length === 0 && (
+          {currentServices.length === 0 ? (
             <div className="text-center py-12 bg-white rounded-lg shadow">
               <p className="text-gray-500">
                 {viewMode === 'public'
                   ? 'No public services being monitored yet.'
                   : 'No private services being monitored yet.'}
               </p>
+            </div>
+          ) : (
+            <div className="space-y-8">
+              {groupedServices.map(group => {
+                const groupStatus = getGroupStatus(group.services);
+                const isCollapsed = collapsedGroups[group.id];
+
+                return (
+                  <div key={group.id || 'ungrouped'} className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+                    {/* Group Header */}
+                    <div
+                      className="flex items-center justify-between p-4 bg-white border-b border-gray-200 cursor-pointer hover:bg-gray-25 transition-colors"
+                      onClick={() => toggleGroup(group.id)}
+                    >
+                      <div className="flex items-center gap-3 flex-1">
+                        <svg
+                          className={`h-5 w-5 text-gray-500 transition-transform ${isCollapsed ? '' : 'rotate-180'}`}
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                        >
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                        </svg>
+                        <div className="flex items-center gap-2">
+                          <svg className="h-5 w-5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                          </svg>
+                          <h3 className="text-lg font-semibold text-gray-900">{group.name}</h3>
+                        </div>
+                        <span className="text-sm text-gray-500">
+                          ({group.services.length} {group.services.length === 1 ? 'service' : 'services'})
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        {getGroupStatusBadge(groupStatus)}
+                      </div>
+                    </div>
+
+                    {/* Group Services */}
+                    {!isCollapsed && (
+                      <div className="p-6">
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                          {group.services.map((service) => (
+                            <ServiceCard
+                              key={service.id}
+                              service={service}
+                              onViewDetails={handleViewDetails}
+                            />
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           )}
         </section>

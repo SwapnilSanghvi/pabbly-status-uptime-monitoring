@@ -459,11 +459,13 @@ export default function Settings() {
             <div className="flex flex-col items-center gap-3">
               {/* Logo */}
               {logoPreview && (
-                <img
-                  src={logoPreview}
-                  alt="Logo"
-                  className="h-8 w-auto object-contain"
-                />
+                <a href="/admin/dashboard" className="inline-block">
+                  <img
+                    src={logoPreview}
+                    alt="Logo"
+                    className="h-8 w-auto object-contain cursor-pointer hover:opacity-80 transition-opacity"
+                  />
+                </a>
               )}
               <h1 className="text-lg font-bold text-gray-900">Admin Settings</h1>
 
@@ -537,11 +539,13 @@ export default function Settings() {
             <div>
               {/* Logo */}
               {logoPreview && (
-                <img
-                  src={logoPreview}
-                  alt="Logo"
-                  className="h-8 sm:h-10 w-auto object-contain mb-2"
-                />
+                <a href="/admin/dashboard" className="inline-block mb-2">
+                  <img
+                    src={logoPreview}
+                    alt="Logo"
+                    className="h-8 sm:h-10 w-auto object-contain cursor-pointer hover:opacity-80 transition-opacity"
+                  />
+                </a>
               )}
               <h1 className="text-lg sm:text-xl font-bold text-gray-900">Admin Settings</h1>
             </div>

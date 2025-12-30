@@ -17,6 +17,8 @@ export const getAllAPIs = async (req, res) => {
     const result = await query(`
       SELECT
         a.*,
+        g.name as group_name,
+        g.display_order as group_order,
         (
           SELECT status
           FROM ping_logs
@@ -32,7 +34,8 @@ export const getAllAPIs = async (req, res) => {
           LIMIT 1
         ) as last_checked
       FROM apis a
-      ORDER BY a.display_order ASC, a.id ASC
+      LEFT JOIN api_groups g ON a.group_id = g.id
+      ORDER BY g.display_order ASC, a.display_order ASC, a.id ASC
     `);
 
     // Mark as 'pending' if no pings exist yet
@@ -97,6 +100,7 @@ export const createAPI = async (req, res) => {
       timeout_duration = 30000,
       is_active = true,
       is_public = true,
+      group_id,
     } = req.body;
 
     // Validation
@@ -117,11 +121,22 @@ export const createAPI = async (req, res) => {
       });
     }
 
+    // If no group_id provided, assign to default group
+    let finalGroupId = group_id;
+    if (!finalGroupId) {
+      const defaultGroupResult = await query(
+        'SELECT id FROM api_groups WHERE is_default = TRUE LIMIT 1'
+      );
+      if (defaultGroupResult.rows.length > 0) {
+        finalGroupId = defaultGroupResult.rows[0].id;
+      }
+    }
+
     const result = await query(
-      `INSERT INTO apis (name, url, monitoring_interval, expected_status_code, timeout_duration, is_active, is_public)
-       VALUES ($1, $2, $3, $4, $5, $6, $7)
+      `INSERT INTO apis (name, url, monitoring_interval, expected_status_code, timeout_duration, is_active, is_public, group_id)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
        RETURNING *`,
-      [name, url, monitoring_interval, expected_status_code, timeout_duration, is_active, is_public]
+      [name, url, monitoring_interval, expected_status_code, timeout_duration, is_active, is_public, finalGroupId]
     );
 
     res.status(201).json({
@@ -150,6 +165,7 @@ export const updateAPI = async (req, res) => {
       timeout_duration,
       is_active,
       is_public,
+      group_id,
     } = req.body;
 
     // Check if API exists
@@ -214,6 +230,12 @@ export const updateAPI = async (req, res) => {
     if (is_public !== undefined) {
       updates.push(`is_public = $${paramCount}`);
       values.push(is_public);
+      paramCount++;
+    }
+
+    if (group_id !== undefined) {
+      updates.push(`group_id = $${paramCount}`);
+      values.push(group_id);
       paramCount++;
     }
 
@@ -1186,6 +1208,292 @@ export const reorderAPIs = async (req, res) => {
     res.status(500).json({
       error: 'Server error',
       message: 'Failed to update API order',
+    });
+  }
+};
+
+// ============================================
+// API GROUPS MANAGEMENT
+// ============================================
+
+// Get all API groups with API counts
+export const getAPIGroups = async (req, res) => {
+  try {
+    const result = await query(
+      `SELECT g.*,
+        COUNT(a.id) as api_count
+       FROM api_groups g
+       LEFT JOIN apis a ON a.group_id = g.id
+       GROUP BY g.id
+       ORDER BY g.display_order ASC, g.id ASC`
+    );
+
+    res.json({
+      success: true,
+      groups: result.rows,
+    });
+  } catch (error) {
+    console.error('Get API groups error:', error);
+    res.status(500).json({
+      error: 'Server error',
+      message: 'Failed to fetch API groups',
+    });
+  }
+};
+
+// Get single API group with its APIs
+export const getAPIGroup = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // Get group details
+    const groupResult = await query(
+      'SELECT * FROM api_groups WHERE id = $1',
+      [id]
+    );
+
+    if (groupResult.rows.length === 0) {
+      return res.status(404).json({
+        error: 'Not found',
+        message: 'API group not found',
+      });
+    }
+
+    // Get APIs in this group
+    const apisResult = await query(
+      'SELECT * FROM apis WHERE group_id = $1 ORDER BY display_order ASC, id ASC',
+      [id]
+    );
+
+    res.json({
+      success: true,
+      group: {
+        ...groupResult.rows[0],
+        apis: apisResult.rows,
+      },
+    });
+  } catch (error) {
+    console.error('Get API group error:', error);
+    res.status(500).json({
+      error: 'Server error',
+      message: 'Failed to fetch API group',
+    });
+  }
+};
+
+// Create new API group
+export const createAPIGroup = async (req, res) => {
+  try {
+    const { name, description } = req.body;
+
+    // Validate required fields
+    if (!name || name.trim() === '') {
+      return res.status(400).json({
+        error: 'Validation error',
+        message: 'Group name is required',
+      });
+    }
+
+    // Check for duplicate name
+    const existingGroup = await query(
+      'SELECT id FROM api_groups WHERE name = $1',
+      [name.trim()]
+    );
+
+    if (existingGroup.rows.length > 0) {
+      return res.status(400).json({
+        error: 'Validation error',
+        message: 'A group with this name already exists',
+      });
+    }
+
+    // Get the highest display_order to place new group at the end (excluding default group)
+    const maxOrderResult = await query(
+      'SELECT MAX(display_order) as max_order FROM api_groups WHERE is_default = FALSE OR is_default IS NULL'
+    );
+    const nextOrder = (maxOrderResult.rows[0].max_order || 0) + 1;
+
+    // Insert new group
+    const result = await query(
+      `INSERT INTO api_groups (name, description, display_order, created_at, updated_at)
+       VALUES ($1, $2, $3, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+       RETURNING *`,
+      [name.trim(), description || null, nextOrder]
+    );
+
+    res.status(201).json({
+      success: true,
+      message: 'API group created successfully',
+      group: result.rows[0],
+    });
+  } catch (error) {
+    console.error('Create API group error:', error);
+    res.status(500).json({
+      error: 'Server error',
+      message: 'Failed to create API group',
+    });
+  }
+};
+
+// Update API group
+export const updateAPIGroup = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { name, description } = req.body;
+
+    // Check if group exists
+    const groupCheck = await query(
+      'SELECT name, is_default FROM api_groups WHERE id = $1',
+      [id]
+    );
+
+    if (groupCheck.rows.length === 0) {
+      return res.status(404).json({
+        error: 'Not found',
+        message: 'API group not found',
+      });
+    }
+
+    // Note: Renaming is now allowed for all groups, including the default group
+
+    // Validate required fields
+    if (!name || name.trim() === '') {
+      return res.status(400).json({
+        error: 'Validation error',
+        message: 'Group name is required',
+      });
+    }
+
+    // Check for duplicate name (excluding current group)
+    const existingGroup = await query(
+      'SELECT id FROM api_groups WHERE name = $1 AND id != $2',
+      [name.trim(), id]
+    );
+
+    if (existingGroup.rows.length > 0) {
+      return res.status(400).json({
+        error: 'Validation error',
+        message: 'A group with this name already exists',
+      });
+    }
+
+    // Update group
+    const result = await query(
+      `UPDATE api_groups
+       SET name = $1, description = $2, updated_at = CURRENT_TIMESTAMP
+       WHERE id = $3
+       RETURNING *`,
+      [name.trim(), description || null, id]
+    );
+
+    res.json({
+      success: true,
+      message: 'API group updated successfully',
+      group: result.rows[0],
+    });
+  } catch (error) {
+    console.error('Update API group error:', error);
+    res.status(500).json({
+      error: 'Server error',
+      message: 'Failed to update API group',
+    });
+  }
+};
+
+// Delete API group
+export const deleteAPIGroup = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // Check if group exists
+    const groupCheck = await query(
+      'SELECT name, is_default FROM api_groups WHERE id = $1',
+      [id]
+    );
+
+    if (groupCheck.rows.length === 0) {
+      return res.status(404).json({
+        error: 'Not found',
+        message: 'API group not found',
+      });
+    }
+
+    // Prevent deleting the default group
+    if (groupCheck.rows[0].is_default === true) {
+      return res.status(400).json({
+        error: 'Validation error',
+        message: 'Cannot delete the default group',
+      });
+    }
+
+    // Get the default group ID and name to move orphaned APIs
+    const defaultGroupResult = await query(
+      'SELECT id, name FROM api_groups WHERE is_default = TRUE LIMIT 1'
+    );
+
+    if (defaultGroupResult.rows.length === 0) {
+      return res.status(500).json({
+        error: 'Server error',
+        message: 'Default group not found. Please run database migrations.',
+      });
+    }
+
+    const defaultGroupId = defaultGroupResult.rows[0].id;
+    const defaultGroupName = defaultGroupResult.rows[0].name;
+
+    // Move all APIs from this group to default group
+    await query(
+      'UPDATE apis SET group_id = $1 WHERE group_id = $2',
+      [defaultGroupId, id]
+    );
+
+    // Delete the group
+    await query('DELETE FROM api_groups WHERE id = $1', [id]);
+
+    res.json({
+      success: true,
+      message: `API group deleted successfully. APIs moved to ${defaultGroupName}.`,
+    });
+  } catch (error) {
+    console.error('Delete API group error:', error);
+    res.status(500).json({
+      error: 'Server error',
+      message: 'Failed to delete API group',
+    });
+  }
+};
+
+// Reorder API groups
+export const reorderAPIGroups = async (req, res) => {
+  try {
+    const { groupIds } = req.body;
+
+    if (!Array.isArray(groupIds) || groupIds.length === 0) {
+      return res.status(400).json({
+        error: 'Validation error',
+        message: 'groupIds must be a non-empty array',
+      });
+    }
+
+    // Update display_order for each group
+    const updatePromises = groupIds.map((groupId, index) => {
+      return query(
+        'UPDATE api_groups SET display_order = $1 WHERE id = $2',
+        [index + 1, groupId]
+      );
+    });
+
+    await Promise.all(updatePromises);
+
+    res.json({
+      success: true,
+      message: 'API group order updated successfully',
+    });
+  } catch (error) {
+    console.error('Reorder API groups error:', error);
+    res.status(500).json({
+      error: 'Server error',
+      message: 'Failed to update API group order',
     });
   }
 };

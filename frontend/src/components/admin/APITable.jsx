@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import toast from 'react-hot-toast';
 import {
   DndContext,
@@ -42,9 +42,93 @@ function SortableRow({ api, onEdit, handleDelete, deleting, getStatusBadge }) {
     <tr
       ref={setNodeRef}
       style={style}
-      className="hover:bg-gray-50"
+      className="hover:bg-gray-50 border-b border-gray-200"
     >
-      <td className="px-6 py-4">
+      {/* Mobile Card View (shown on mobile, hidden on desktop) */}
+      <td colSpan="6" className="md:hidden p-4">
+        <div className="space-y-3">
+          {/* Name and URL */}
+          <div className="flex items-start gap-2">
+            <button
+              {...attributes}
+              {...listeners}
+              className="cursor-grab active:cursor-grabbing text-gray-400 hover:text-gray-600 mt-0.5 flex-shrink-0"
+              title="Drag to reorder"
+            >
+              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+              </svg>
+            </button>
+            <div className="flex-1 min-w-0">
+              <div className="text-sm font-medium text-gray-900">{api.name}</div>
+              <div
+                className="text-xs text-gray-500 mt-0.5 cursor-pointer hover:text-gray-700 transition-colors truncate"
+                onClick={() => {
+                  navigator.clipboard.writeText(api.url);
+                  toast.success('URL copied to clipboard!');
+                }}
+              >
+                {api.url.length > 40 ? `${api.url.substring(0, 40)}...` : api.url}
+              </div>
+            </div>
+          </div>
+
+          {/* Status, Visibility, Uptime in a row */}
+          <div className="flex flex-wrap gap-2">
+            {getStatusBadge(api.last_status)}
+            {api.is_public ? (
+              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                <svg className="h-3 w-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                  <path d="M10 12a2 2 0 100-4 2 2 0 000 4z" />
+                  <path fillRule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clipRule="evenodd" />
+                </svg>
+                Public
+              </span>
+            ) : (
+              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800">
+                <svg className="h-3 w-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
+                </svg>
+                Private
+              </span>
+            )}
+            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+              {api.uptime_24h ? `${parseFloat(api.uptime_24h).toFixed(2)}%` : 'N/A'}
+            </span>
+          </div>
+
+          {/* Last Checked */}
+          <div className="text-xs text-gray-500">
+            Last checked: <Timestamp timestamp={api.last_checked} format="relative" />
+          </div>
+
+          {/* Actions */}
+          <div className="flex gap-3 pt-2 border-t border-gray-100">
+            <button
+              onClick={() => onEdit(api)}
+              className="inline-flex items-center gap-1 text-blue-600 hover:text-blue-900 text-sm"
+            >
+              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+              </svg>
+              Edit
+            </button>
+            <button
+              onClick={() => handleDelete(api)}
+              disabled={deleting === api.id}
+              className="inline-flex items-center gap-1 text-red-600 hover:text-red-900 disabled:opacity-50 text-sm"
+            >
+              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+              </svg>
+              {deleting === api.id ? 'Deleting...' : 'Delete'}
+            </button>
+          </div>
+        </div>
+      </td>
+
+      {/* Desktop Table View (hidden on mobile, shown on desktop) */}
+      <td className="hidden md:table-cell w-[35%] px-6 py-4">
         <div className="flex items-start gap-3">
           <button
             {...attributes}
@@ -57,27 +141,36 @@ function SortableRow({ api, onEdit, handleDelete, deleting, getStatusBadge }) {
             </svg>
           </button>
           <div className="flex-1 min-w-0">
-            <div className="relative group inline-block">
+            <div className="relative group">
               <div className="text-sm font-medium text-gray-900 cursor-default">{api.name}</div>
               <div className="absolute left-0 bottom-full mb-2 px-3 py-2 bg-gray-900 text-white text-xs rounded shadow-lg whitespace-nowrap pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-150 z-50">
                 Display name for this service
               </div>
             </div>
-            <div className="relative group inline-block w-full">
-              <div className="text-xs text-gray-500 truncate mt-0.5 cursor-default">{api.url}</div>
+            <div className="relative group block">
+              <div
+                className="text-xs text-gray-500 mt-0.5 cursor-pointer hover:text-gray-700 transition-colors overflow-hidden text-ellipsis whitespace-nowrap max-w-md"
+                onClick={() => {
+                  navigator.clipboard.writeText(api.url);
+                  toast.success('URL copied to clipboard!');
+                }}
+                title="Click to copy URL"
+              >
+                {api.url.length > 60 ? `${api.url.substring(0, 60)}...` : api.url}
+              </div>
               <div className="absolute left-0 bottom-full mb-2 px-3 py-2 bg-gray-900 text-white text-xs rounded shadow-lg pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-150 z-50 max-w-md">
                 <div className="font-medium mb-1">Monitored URL:</div>
                 <div className="break-all">{api.url}</div>
-                <div className="text-gray-300 mt-1 text-[10px]">This URL is checked for status updates</div>
+                <div className="text-gray-300 mt-1 text-[10px]">Click to copy • This URL is checked for status updates</div>
               </div>
             </div>
           </div>
         </div>
       </td>
-      <td className="px-6 py-4 whitespace-nowrap">
+      <td className="hidden md:table-cell w-[12%] px-6 py-4 whitespace-nowrap">
         {getStatusBadge(api.last_status)}
       </td>
-      <td className="px-6 py-4 whitespace-nowrap">
+      <td className="hidden md:table-cell w-[12%] px-6 py-4 whitespace-nowrap">
         {api.is_public ? (
           <div className="relative group inline-block">
             <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 cursor-default">
@@ -105,12 +198,12 @@ function SortableRow({ api, onEdit, handleDelete, deleting, getStatusBadge }) {
           </div>
         )}
       </td>
-      <td className="px-6 py-4 whitespace-nowrap">
+      <td className="hidden md:table-cell w-[13%] px-6 py-4 whitespace-nowrap">
         <div className="text-sm text-gray-900">
           {api.uptime_24h ? `${parseFloat(api.uptime_24h).toFixed(2)}%` : 'N/A'}
         </div>
       </td>
-      <td className="px-6 py-4 whitespace-nowrap">
+      <td className="hidden md:table-cell w-[15%] px-6 py-4 whitespace-nowrap">
         <div className="text-sm text-gray-500 relative group cursor-default">
           <Timestamp timestamp={api.last_checked} format="relative" />
           {api.last_checked && (
@@ -129,7 +222,7 @@ function SortableRow({ api, onEdit, handleDelete, deleting, getStatusBadge }) {
           )}
         </div>
       </td>
-      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+      <td className="hidden md:table-cell w-[13%] px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
         <button
           onClick={() => onEdit(api)}
           className="inline-flex items-center gap-1 text-blue-600 hover:text-blue-900 mr-4"
@@ -159,6 +252,7 @@ function SortableRow({ api, onEdit, handleDelete, deleting, getStatusBadge }) {
 export default function APITable({ apis, onEdit, onDelete, onAdd, onReorder }) {
   const [deleting, setDeleting] = useState(null);
   const [items, setItems] = useState(apis);
+  const [collapsedGroups, setCollapsedGroups] = useState({});
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -171,6 +265,24 @@ export default function APITable({ apis, onEdit, onDelete, onAdd, onReorder }) {
   useEffect(() => {
     setItems(apis);
   }, [apis]);
+
+  // Group APIs by group_id
+  const groupedAPIs = useMemo(() => {
+    const grouped = {};
+    items.forEach(api => {
+      const groupKey = api.group_id || 'ungrouped';
+      if (!grouped[groupKey]) {
+        grouped[groupKey] = {
+          group_id: api.group_id,
+          group_name: api.group_name || 'Ungrouped',
+          group_order: api.group_order !== undefined ? api.group_order : 999,
+          apis: []
+        };
+      }
+      grouped[groupKey].apis.push(api);
+    });
+    return Object.values(grouped).sort((a, b) => a.group_order - b.group_order);
+  }, [items]);
 
   const handleDelete = async (api) => {
     if (!window.confirm(`Are you sure you want to delete "${api.name}"?`)) {
@@ -193,30 +305,48 @@ export default function APITable({ apis, onEdit, onDelete, onAdd, onReorder }) {
   const handleDragEnd = async (event) => {
     const { active, over } = event;
 
-    if (active.id !== over.id) {
-      const oldIndex = items.findIndex((item) => item.id === active.id);
-      const newIndex = items.findIndex((item) => item.id === over.id);
-
-      const newItems = arrayMove(items, oldIndex, newIndex);
-      setItems(newItems);
-
-      // Send the new order to the backend
-      try {
-        const apiIds = newItems.map(item => item.id);
-        await reorderAPIs(apiIds);
-        toast.success('API order updated');
-
-        // Notify parent component
-        if (onReorder) {
-          onReorder(newItems);
-        }
-      } catch (error) {
-        console.error('Reorder error:', error);
-        toast.error('Failed to update order');
-        // Revert on error
-        setItems(apis);
-      }
+    if (!over || active.id === over.id) {
+      return;
     }
+
+    const oldIndex = items.findIndex((item) => item.id === active.id);
+    const newIndex = items.findIndex((item) => item.id === over.id);
+
+    // Check if both items are in the same group
+    const activeAPI = items[oldIndex];
+    const overAPI = items[newIndex];
+
+    if (activeAPI.group_id !== overAPI.group_id) {
+      toast.error('Can only reorder APIs within the same group');
+      return;
+    }
+
+    const newItems = arrayMove(items, oldIndex, newIndex);
+    setItems(newItems);
+
+    // Send the new order to the backend
+    try {
+      const apiIds = newItems.map(item => item.id);
+      await reorderAPIs(apiIds);
+      toast.success('API order updated');
+
+      // Notify parent component
+      if (onReorder) {
+        onReorder(newItems);
+      }
+    } catch (error) {
+      console.error('Reorder error:', error);
+      toast.error('Failed to update order');
+      // Revert on error
+      setItems(apis);
+    }
+  };
+
+  const toggleGroup = (groupId) => {
+    setCollapsedGroups(prev => ({
+      ...prev,
+      [groupId]: !prev[groupId]
+    }));
   };
 
   const getStatusBadge = (status) => {
@@ -290,51 +420,93 @@ export default function APITable({ apis, onEdit, onDelete, onAdd, onReorder }) {
           collisionDetection={closestCenter}
           onDragEnd={handleDragEnd}
         >
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
+          <table className="min-w-full table-fixed">
+            {/* Table Header - Hidden on mobile, shown on desktop */}
+            <thead className="bg-gray-50 border-b border-gray-200 hidden md:table-header-group">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="w-[35%] px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Name / URL
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="w-[12%] px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Status
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="w-[12%] px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Visibility
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="w-[13%] px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Uptime (24h)
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="w-[15%] px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Last Checked
                 </th>
-                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="w-[13%] px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Actions
                 </th>
               </tr>
             </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              <SortableContext
-                items={items.map(item => item.id)}
-                strategy={verticalListSortingStrategy}
-              >
-                {items.map((api) => (
-                  <SortableRow
-                    key={api.id}
-                    api={api}
-                    onEdit={onEdit}
-                    handleDelete={handleDelete}
-                    deleting={deleting}
-                    getStatusBadge={getStatusBadge}
-                  />
-                ))}
-              </SortableContext>
+
+            <tbody className="bg-white">
+              {groupedAPIs.map((group, groupIndex) => {
+                const isCollapsed = collapsedGroups[group.group_id || 'ungrouped'];
+
+                return (
+                  <React.Fragment key={group.group_id || 'ungrouped'}>
+                    {/* Group Header Row */}
+                    <tr className={`bg-gray-100 ${groupIndex > 0 ? 'border-t-4 border-gray-200' : ''}`}>
+                      <td colSpan="6" className="px-6 py-3">
+                        <div
+                          className="flex items-center cursor-pointer hover:bg-gray-200 -mx-6 -my-3 px-6 py-3 transition-colors"
+                          onClick={() => toggleGroup(group.group_id || 'ungrouped')}
+                        >
+                          <svg
+                            className={`h-4 w-4 mr-2 text-gray-500 transition-transform ${isCollapsed ? '' : 'rotate-180'}`}
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                          >
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                          </svg>
+                          <svg className="h-4 w-4 mr-2 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                          </svg>
+                          <h3 className="text-sm font-semibold text-gray-700 flex items-center">
+                            {group.group_name}
+                            <span className="ml-2 text-xs font-normal text-gray-500">
+                              ({group.apis.length} {group.apis.length === 1 ? 'API' : 'APIs'})
+                            </span>
+                          </h3>
+                        </div>
+                      </td>
+                    </tr>
+
+                    {/* API Rows for this group - Only show if not collapsed */}
+                    {!isCollapsed && (
+                      <SortableContext
+                        items={group.apis.map(api => api.id)}
+                        strategy={verticalListSortingStrategy}
+                      >
+                        {group.apis.map((api) => (
+                          <SortableRow
+                            key={api.id}
+                            api={api}
+                            onEdit={onEdit}
+                            handleDelete={handleDelete}
+                            deleting={deleting}
+                            getStatusBadge={getStatusBadge}
+                          />
+                        ))}
+                      </SortableContext>
+                    )}
+                  </React.Fragment>
+                );
+              })}
             </tbody>
           </table>
         </DndContext>
       </div>
+
       <div className="px-6 py-3 bg-gray-50 border-t border-gray-200 text-xs text-gray-500">
-        💡 Tip: Drag the ☰ icon to reorder APIs. The order will be saved automatically.
+        💡 Tip: Drag the ☰ icon to reorder APIs within the same group. The order will be saved automatically.
       </div>
     </div>
   );

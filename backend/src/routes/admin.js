@@ -23,6 +23,12 @@ import {
   updateEmailSettings,
   testEmailSettings,
   getVersion,
+  getAPIGroups,
+  getAPIGroup,
+  createAPIGroup,
+  updateAPIGroup,
+  deleteAPIGroup,
+  reorderAPIGroups,
 } from '../controllers/adminController.js';
 import { authenticateToken } from '../middleware/auth.js';
 import upload from '../config/upload.js';
@@ -39,6 +45,14 @@ router.post('/apis', createAPI);
 router.put('/apis/:id', updateAPI);
 router.delete('/apis/:id', deleteAPI);
 router.put('/apis-reorder', reorderAPIs);
+
+// API Groups Management
+router.get('/api-groups', getAPIGroups);
+router.get('/api-groups/:id', getAPIGroup);
+router.post('/api-groups', createAPIGroup);
+router.put('/api-groups/:id', updateAPIGroup);
+router.delete('/api-groups/:id', deleteAPIGroup);
+router.put('/api-groups-reorder', reorderAPIGroups);
 
 // Dashboard Stats
 router.get('/dashboard-stats', getDashboardStats);
