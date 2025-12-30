@@ -17,7 +17,12 @@ import {
   updateSettings,
   getWebhookLogs,
   testWebhookEndpoint,
+  testWebhook,
   uploadLogo,
+  getEmailSettings,
+  updateEmailSettings,
+  testEmailSettings,
+  getVersion,
 } from '../controllers/adminController.js';
 import { authenticateToken } from '../middleware/auth.js';
 import upload from '../config/upload.js';
@@ -55,8 +60,17 @@ router.put('/settings', updateSettings);
 // Logo Upload
 router.post('/upload-logo', upload.single('logo'), uploadLogo);
 
+// Email SMTP Settings
+router.get('/email-settings', getEmailSettings);
+router.put('/email-settings', updateEmailSettings);
+router.post('/email-test', testEmailSettings);
+
 // Webhooks
 router.get('/webhook-logs', getWebhookLogs);
-router.post('/webhook-test', testWebhookEndpoint);
+router.post('/webhook-test', testWebhook);
+router.post('/test-webhook-endpoint', testWebhookEndpoint);
+
+// Version
+router.get('/version', getVersion);
 
 export default router;

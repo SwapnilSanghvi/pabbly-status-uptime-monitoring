@@ -255,7 +255,7 @@ ufw status
 
 ### 9.2 Configure webhook and email settings
 1. In Settings, add your webhook URL for notifications
-2. If using email notifications, update SMTP settings in backend/.env and restart PM2
+2. Configure email notifications in Admin Settings → Email tab (changes take effect immediately)
 
 ### 9.3 Add your APIs to monitor
 1. Go to Admin Dashboard → APIs

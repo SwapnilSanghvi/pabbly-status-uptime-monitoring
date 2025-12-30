@@ -1,18 +1,26 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { getProfile, updateProfile, changePassword, getCurrentUser } from '../services/authService';
-import { getSettings, updateSettings, uploadLogo } from '../services/adminService';
+import { getSettings, updateSettings, uploadLogo, getEmailSettings, updateEmailSettings, testEmail, testWebhook, getVersion } from '../services/adminService';
 import Loading from '../components/shared/Loading';
 import toast from 'react-hot-toast';
 
 export default function Settings() {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [testingEmail, setTestingEmail] = useState(false);
+  const [testingWebhook, setTestingWebhook] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState('account'); // 'account', 'password', 'system', 'webhook'
+  const [version, setVersion] = useState('');
+  const [emailInputValue, setEmailInputValue] = useState('');
+  const [emailTags, setEmailTags] = useState([]);
+
+  // Get active tab from URL params, default to 'account'
+  const [activeTab, setActiveTab] = useState(searchParams.get('tab') || 'account');
 
   // Account Settings
   const [profileData, setProfileData] = useState({
@@ -39,10 +47,28 @@ export default function Settings() {
     logo_url: '',
   });
 
+  // Email SMTP Settings
+  const [emailSettings, setEmailSettings] = useState({
+    smtp_host: '',
+    smtp_port: '587',
+    smtp_user: '',
+    smtp_pass: '',
+    smtp_from: '',
+    smtp_recipients: '',
+  });
+
   // Logo Upload
   const [logoFile, setLogoFile] = useState(null);
   const [logoPreview, setLogoPreview] = useState(null);
   const [uploadingLogo, setUploadingLogo] = useState(false);
+
+  // Sync activeTab with URL params
+  useEffect(() => {
+    const tabFromUrl = searchParams.get('tab');
+    if (tabFromUrl && tabFromUrl !== activeTab) {
+      setActiveTab(tabFromUrl);
+    }
+  }, [searchParams]);
 
   useEffect(() => {
     fetchData();
@@ -104,12 +130,55 @@ export default function Settings() {
         }
       }
 
+      // Fetch email settings
+      try {
+        const emailRes = await getEmailSettings();
+        if (emailRes && emailRes.emailSettings) {
+          setEmailSettings({
+            smtp_host: emailRes.emailSettings.smtp_host || '',
+            smtp_port: emailRes.emailSettings.smtp_port || '587',
+            smtp_user: emailRes.emailSettings.smtp_user || '',
+            smtp_pass: emailRes.emailSettings.smtp_pass || '',
+            smtp_from: emailRes.emailSettings.smtp_from || '',
+            smtp_recipients: emailRes.emailSettings.smtp_recipients || '',
+          });
+
+          // Initialize email tags from comma-separated string
+          if (emailRes.emailSettings.smtp_recipients) {
+            const tags = emailRes.emailSettings.smtp_recipients
+              .split(',')
+              .map(email => email.trim())
+              .filter(email => email);
+            setEmailTags(tags);
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching email settings:', error);
+        // Don't show error toast for email settings, they might not be configured yet
+      }
+
+      // Fetch version
+      try {
+        const versionRes = await getVersion();
+        if (versionRes && versionRes.version) {
+          setVersion(versionRes.version);
+        }
+      } catch (error) {
+        console.error('Error fetching version:', error);
+      }
+
       setLoading(false);
     } catch (error) {
       console.error('Error fetching settings:', error);
       toast.error('Failed to load settings');
       setLoading(false);
     }
+  };
+
+  // Handle tab change and update URL
+  const handleTabChange = (tab) => {
+    setActiveTab(tab);
+    setSearchParams({ tab });
   };
 
   const handleProfileChange = (e) => {
@@ -134,13 +203,29 @@ export default function Settings() {
     });
   };
 
+  const handleEmailChange = (e) => {
+    setEmailSettings({
+      ...emailSettings,
+      [e.target.name]: e.target.value,
+    });
+  };
+
   const handleProfileSubmit = async (e) => {
     e.preventDefault();
     setSaving(true);
 
     try {
       await updateProfile(profileData);
-      toast.success('Profile updated successfully');
+      toast.success('Profile updated successfully. Please log out and log back in for changes to take effect.');
+
+      // Refresh profile data
+      const profileRes = await getProfile();
+      if (profileRes && profileRes.profile) {
+        setProfileData({
+          email: profileRes.profile.email || '',
+          full_name: profileRes.profile.full_name || '',
+        });
+      }
     } catch (error) {
       console.error('Update error:', error);
       toast.error(error.response?.data?.message || 'Failed to update profile');
@@ -192,6 +277,102 @@ export default function Settings() {
       toast.error(error.response?.data?.message || 'Failed to update settings');
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleEmailTagInput = (e) => {
+    setEmailInputValue(e.target.value);
+  };
+
+  const handleEmailTagKeyDown = (e) => {
+    if (e.key === 'Enter' || e.key === ',' || e.key === ' ') {
+      e.preventDefault();
+      addEmailTag();
+    } else if (e.key === 'Backspace' && !emailInputValue && emailTags.length > 0) {
+      // Remove last tag if backspace is pressed on empty input
+      removeEmailTag(emailTags.length - 1);
+    }
+  };
+
+  const addEmailTag = () => {
+    const trimmedEmail = emailInputValue.trim();
+    if (trimmedEmail && !emailTags.includes(trimmedEmail)) {
+      // Basic email validation
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (emailRegex.test(trimmedEmail)) {
+        const newTags = [...emailTags, trimmedEmail];
+        setEmailTags(newTags);
+        setEmailInputValue('');
+
+        // Update the emailSettings state with comma-separated emails
+        setEmailSettings({
+          ...emailSettings,
+          smtp_recipients: newTags.join(', '),
+        });
+      } else {
+        toast.error('Please enter a valid email address');
+      }
+    }
+  };
+
+  const removeEmailTag = (indexToRemove) => {
+    const newTags = emailTags.filter((_, index) => index !== indexToRemove);
+    setEmailTags(newTags);
+
+    // Update the emailSettings state
+    setEmailSettings({
+      ...emailSettings,
+      smtp_recipients: newTags.join(', '),
+    });
+  };
+
+  const handleEmailSubmit = async (e) => {
+    e.preventDefault();
+
+    // Validate that at least one email recipient exists
+    if (emailTags.length === 0) {
+      toast.error('Please add at least one recipient email address');
+      return;
+    }
+
+    setSaving(true);
+
+    try {
+      const response = await updateEmailSettings(emailSettings);
+      toast.success(response.message || 'Email settings updated successfully');
+    } catch (error) {
+      console.error('Update email error:', error);
+      toast.error(error.response?.data?.message || 'Failed to update email settings');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleTestEmail = async () => {
+    setTestingEmail(true);
+
+    try {
+      const response = await testEmail();
+      toast.success(response.message || 'Test email sent successfully');
+    } catch (error) {
+      console.error('Test email error:', error);
+      toast.error(error.response?.data?.message || 'Failed to send test email. Please check your SMTP configuration.');
+    } finally {
+      setTestingEmail(false);
+    }
+  };
+
+  const handleTestWebhook = async () => {
+    setTestingWebhook(true);
+
+    try {
+      const response = await testWebhook();
+      toast.success(response.message || 'Test webhook sent successfully');
+    } catch (error) {
+      console.error('Test webhook error:', error);
+      toast.error(error.response?.data?.message || 'Failed to send test webhook. Please check your webhook URL.');
+    } finally {
+      setTestingWebhook(false);
     }
   };
 
@@ -269,7 +450,7 @@ export default function Settings() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 flex flex-col">
       {/* Header */}
       <header className="bg-white shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
@@ -427,12 +608,12 @@ export default function Settings() {
       </header>
 
       {/* Main Content */}
-      <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <main className="flex-grow max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full">
         {/* Tab Navigation */}
         <div className="bg-white rounded-t-lg border border-gray-200 border-b-0">
           <div className="flex overflow-x-auto border-b border-gray-200 overflow-y-hidden" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
             <button
-              onClick={() => setActiveTab('account')}
+              onClick={() => handleTabChange('account')}
               className={`px-4 sm:px-6 py-3 text-xs sm:text-sm font-medium border-b-2 transition-colors whitespace-nowrap flex-shrink-0 ${
                 activeTab === 'account'
                   ? 'border-blue-600 text-blue-600'
@@ -442,7 +623,7 @@ export default function Settings() {
               Account
             </button>
             <button
-              onClick={() => setActiveTab('password')}
+              onClick={() => handleTabChange('password')}
               className={`px-4 sm:px-6 py-3 text-xs sm:text-sm font-medium border-b-2 transition-colors whitespace-nowrap flex-shrink-0 ${
                 activeTab === 'password'
                   ? 'border-blue-600 text-blue-600'
@@ -452,7 +633,7 @@ export default function Settings() {
               Password
             </button>
             <button
-              onClick={() => setActiveTab('system')}
+              onClick={() => handleTabChange('system')}
               className={`px-4 sm:px-6 py-3 text-xs sm:text-sm font-medium border-b-2 transition-colors whitespace-nowrap flex-shrink-0 ${
                 activeTab === 'system'
                   ? 'border-blue-600 text-blue-600'
@@ -462,7 +643,7 @@ export default function Settings() {
               System
             </button>
             <button
-              onClick={() => setActiveTab('webhook')}
+              onClick={() => handleTabChange('webhook')}
               className={`px-4 sm:px-6 py-3 text-xs sm:text-sm font-medium border-b-2 transition-colors whitespace-nowrap flex-shrink-0 ${
                 activeTab === 'webhook'
                   ? 'border-blue-600 text-blue-600'
@@ -470,6 +651,16 @@ export default function Settings() {
               }`}
             >
               Webhook
+            </button>
+            <button
+              onClick={() => handleTabChange('email')}
+              className={`px-4 sm:px-6 py-3 text-xs sm:text-sm font-medium border-b-2 transition-colors whitespace-nowrap flex-shrink-0 ${
+                activeTab === 'email'
+                  ? 'border-blue-600 text-blue-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              Email
             </button>
           </div>
         </div>
@@ -667,74 +858,6 @@ export default function Settings() {
                 />
               </div>
 
-              <div>
-                <label htmlFor="brand_color" className="block text-sm font-medium text-gray-700 mb-1">
-                  Brand Color
-                </label>
-                <div className="flex items-center gap-3">
-                  <input
-                    type="color"
-                    id="brand_color"
-                    name="brand_color"
-                    value={systemSettings.brand_color}
-                    onChange={handleSystemChange}
-                    className="h-10 w-20 border border-gray-300 rounded-md cursor-pointer"
-                  />
-                  <input
-                    type="text"
-                    value={systemSettings.brand_color}
-                    onChange={handleSystemChange}
-                    name="brand_color"
-                    placeholder="#3b82f6"
-                    className="flex-1 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label htmlFor="custom_message" className="block text-sm font-medium text-gray-700 mb-1">
-                  Custom Message (Optional)
-                </label>
-                <textarea
-                  id="custom_message"
-                  name="custom_message"
-                  rows="3"
-                  value={systemSettings.custom_message}
-                  onChange={handleSystemChange}
-                  placeholder="Display a custom message on the public status page"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                />
-              </div>
-
-              <div>
-                <label htmlFor="notification_email" className="block text-sm font-medium text-gray-700 mb-1">
-                  Notification Email
-                </label>
-                <input
-                  type="email"
-                  id="notification_email"
-                  name="notification_email"
-                  value={systemSettings.notification_email}
-                  onChange={handleSystemChange}
-                  placeholder="alerts@example.com"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                />
-              </div>
-
-              <div className="flex items-center">
-                <input
-                  type="checkbox"
-                  id="notifications_enabled"
-                  name="notifications_enabled"
-                  checked={systemSettings.notifications_enabled}
-                  onChange={handleSystemChange}
-                  className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                />
-                <label htmlFor="notifications_enabled" className="ml-2 block text-sm text-gray-900">
-                  Enable email notifications for downtime alerts
-                </label>
-              </div>
-
               <div className="flex justify-end">
                 <button
                   type="submit"
@@ -817,14 +940,22 @@ export default function Settings() {
 }`}
                 </pre>
                 <p className="text-xs text-gray-600 mt-2">
-                  <strong>Note:</strong> The payload structure is identical for both DOWN and UP events. Only the <code className="bg-gray-200 px-1 rounded">status</code> field changes.
+                  <strong>Note:</strong> For <code className="bg-gray-200 px-1 rounded">api_down</code> events, <code className="bg-gray-200 px-1 rounded">resolved_at</code> will be <code className="bg-gray-200 px-1 rounded">null</code> and <code className="bg-gray-200 px-1 rounded">downtime_minutes</code> will not be included. For <code className="bg-gray-200 px-1 rounded">api_up</code> events, both fields will be present showing when and for how long the API was down.
                 </p>
               </div>
 
-              <div className="flex justify-end">
+              <div className="flex flex-col sm:flex-row justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={handleTestWebhook}
+                  disabled={testingWebhook || saving}
+                  className="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
+                >
+                  {testingWebhook ? 'Sending Test Webhook...' : 'Send Test Webhook'}
+                </button>
                 <button
                   type="submit"
-                  disabled={saving}
+                  disabled={saving || testingWebhook}
                   className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
                 >
                   {saving ? 'Saving...' : 'Update Webhook Settings'}
@@ -833,8 +964,219 @@ export default function Settings() {
             </form>
           </div>
           )}
+
+          {/* Email SMTP Configuration Tab */}
+          {activeTab === 'email' && (
+          <div>
+            <h2 className="text-lg font-semibold text-gray-900 mb-4">
+              Email SMTP Configuration
+            </h2>
+            <form onSubmit={handleEmailSubmit} className="space-y-4">
+              <div className="bg-blue-50 border border-blue-200 rounded-md p-4 mb-4">
+                <div className="flex">
+                  <div className="flex-shrink-0">
+                    <svg className="h-5 w-5 text-blue-400" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                    </svg>
+                  </div>
+                  <div className="ml-3 flex-1">
+                    <p className="text-sm text-blue-700">
+                      Configure SMTP settings to enable email notifications for downtime alerts. Changes take effect immediately without requiring a restart.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <label htmlFor="smtp_host" className="block text-sm font-medium text-gray-700 mb-1">
+                  SMTP Host <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  id="smtp_host"
+                  name="smtp_host"
+                  value={emailSettings.smtp_host}
+                  onChange={handleEmailChange}
+                  placeholder="smtp.gmail.com"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                  required
+                />
+                <p className="mt-1 text-xs text-gray-500">
+                  Your SMTP server hostname (e.g., smtp.gmail.com, smtp.sendgrid.net)
+                </p>
+              </div>
+
+              <div>
+                <label htmlFor="smtp_port" className="block text-sm font-medium text-gray-700 mb-1">
+                  SMTP Port <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="number"
+                  id="smtp_port"
+                  name="smtp_port"
+                  value={emailSettings.smtp_port}
+                  onChange={handleEmailChange}
+                  placeholder="587"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                  required
+                />
+                <p className="mt-1 text-xs text-gray-500">
+                  Common ports: 587 (TLS), 465 (SSL), 25 (unsecured)
+                </p>
+              </div>
+
+              <div>
+                <label htmlFor="smtp_user" className="block text-sm font-medium text-gray-700 mb-1">
+                  SMTP Username <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  id="smtp_user"
+                  name="smtp_user"
+                  value={emailSettings.smtp_user}
+                  onChange={handleEmailChange}
+                  placeholder="your-email@gmail.com"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                  required
+                />
+                <p className="mt-1 text-xs text-gray-500">
+                  Your SMTP authentication username (usually your email address)
+                </p>
+              </div>
+
+              <div>
+                <label htmlFor="smtp_pass" className="block text-sm font-medium text-gray-700 mb-1">
+                  SMTP Password <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="password"
+                  id="smtp_pass"
+                  name="smtp_pass"
+                  value={emailSettings.smtp_pass}
+                  onChange={handleEmailChange}
+                  placeholder="••••••••••••••••"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                  required
+                />
+                <p className="mt-1 text-xs text-gray-500">
+                  For Gmail, use an App Password (not your regular password). <a href="https://support.google.com/accounts/answer/185833" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-700 underline">Learn more</a>
+                </p>
+              </div>
+
+              <div>
+                <label htmlFor="smtp_from" className="block text-sm font-medium text-gray-700 mb-1">
+                  From Address <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  id="smtp_from"
+                  name="smtp_from"
+                  value={emailSettings.smtp_from}
+                  onChange={handleEmailChange}
+                  placeholder="Status Monitor <noreply@example.com>"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                  required
+                />
+                <p className="mt-1 text-xs text-gray-500">
+                  The "From" name and email address for outgoing emails
+                </p>
+              </div>
+
+              <div>
+                <label htmlFor="smtp_recipients" className="block text-sm font-medium text-gray-700 mb-1">
+                  Recipient Email(s) <span className="text-red-500">*</span>
+                </label>
+                <div className="w-full min-h-[42px] px-3 py-2 border border-gray-300 rounded-md shadow-sm focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-blue-500 bg-white">
+                  <div className="flex flex-wrap gap-2 items-center">
+                    {emailTags.map((email, index) => (
+                      <span
+                        key={index}
+                        className="inline-flex items-center gap-1 px-2 py-1 bg-blue-100 text-blue-800 text-sm rounded-md"
+                      >
+                        {email}
+                        <button
+                          type="button"
+                          onClick={() => removeEmailTag(index)}
+                          className="hover:bg-blue-200 rounded-full p-0.5 transition-colors"
+                        >
+                          <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                          </svg>
+                        </button>
+                      </span>
+                    ))}
+                    <input
+                      type="text"
+                      id="smtp_recipients"
+                      value={emailInputValue}
+                      onChange={handleEmailTagInput}
+                      onKeyDown={handleEmailTagKeyDown}
+                      onBlur={addEmailTag}
+                      placeholder={emailTags.length === 0 ? "Type email and press Enter or comma" : ""}
+                      className="flex-1 min-w-[200px] outline-none border-0 focus:ring-0 p-0"
+                    />
+                  </div>
+                </div>
+                <p className="mt-1 text-xs text-gray-500">
+                  Type an email address and press Enter, comma, or space to add. Click × to remove.
+                </p>
+              </div>
+
+              {/* Example Configuration */}
+              <div className="mt-4 p-4 bg-gray-50 rounded-md border border-gray-200">
+                <h3 className="text-sm font-semibold text-gray-900 mb-2">Example: Gmail Configuration</h3>
+                <div className="text-xs text-gray-600 space-y-1 font-mono">
+                  <p><strong>Host:</strong> smtp.gmail.com</p>
+                  <p><strong>Port:</strong> 587</p>
+                  <p><strong>Username:</strong> your-email@gmail.com</p>
+                  <p><strong>Password:</strong> Your 16-character App Password</p>
+                  <p><strong>From:</strong> Status Monitor &lt;your-email@gmail.com&gt;</p>
+                </div>
+                <div className="mt-2">
+                  <p className="text-xs text-gray-600 mb-1"><strong>Recipients:</strong></p>
+                  <div className="flex flex-wrap gap-2">
+                    <span className="inline-flex items-center px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-md">admin@company.com</span>
+                    <span className="inline-flex items-center px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-md">alerts@company.com</span>
+                  </div>
+                </div>
+                <p className="text-xs text-gray-600 mt-2">
+                  <strong>Note:</strong> Don't forget to enable "Email Notifications" checkbox above to start receiving alerts.
+                </p>
+              </div>
+
+              <div className="flex flex-col sm:flex-row justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={handleTestEmail}
+                  disabled={testingEmail || saving}
+                  className="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
+                >
+                  {testingEmail ? 'Sending Test Email...' : 'Send Test Email'}
+                </button>
+                <button
+                  type="submit"
+                  disabled={saving || testingEmail}
+                  className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
+                >
+                  {saving ? 'Saving...' : 'Update Email Settings'}
+                </button>
+              </div>
+            </form>
+          </div>
+          )}
         </div>
       </main>
+
+      {/* Footer with Version */}
+      <footer className="bg-white border-t border-gray-200 mt-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+          <div className="text-center text-sm text-gray-500">
+            {version && (
+              <p>Pabbly Status Monitor v{version}</p>
+            )}
+          </div>
+        </div>
+      </footer>
     </div>
   );
 }

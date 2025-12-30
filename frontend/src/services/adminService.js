@@ -111,3 +111,25 @@ export const testWebhook = async () => {
   const response = await api.post('/admin/webhook-test');
   return response.data;
 };
+
+// Email SMTP Settings
+export const getEmailSettings = async () => {
+  const response = await api.get('/admin/email-settings');
+  return response.data;
+};
+
+export const updateEmailSettings = async (emailData) => {
+  const response = await api.put('/admin/email-settings', emailData);
+  return response.data;
+};
+
+export const testEmail = async () => {
+  const response = await api.post('/admin/email-test');
+  return response.data;
+};
+
+// Version
+export const getVersion = async () => {
+  const response = await api.get('/admin/version');
+  return response.data;
+};

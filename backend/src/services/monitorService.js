@@ -131,7 +131,14 @@ async function handleStatusChange(api, currentStatus) {
   // Update last status
   apiLastStatus.set(apiId, currentStatus);
 
-  // If this is the first ping, don't create incidents
+  // If this is the first ping AND API is down, create incident
+  if (!lastStatus && currentStatus !== 'success') {
+    console.log(`🔴 NEW API DOWN: ${api.name} (${api.url})`);
+    await detectAndCreateIncident(api);
+    return;
+  }
+
+  // If this is the first ping but API is up, just track it
   if (!lastStatus) {
     return;
   }

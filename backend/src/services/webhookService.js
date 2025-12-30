@@ -218,12 +218,13 @@ export async function testWebhook() {
       return { success: false, message: 'Webhook URL not configured' };
     }
 
-    // Build test payload
+    // Build test payload (matches real webhook structure - simulates an api_up event with resolution)
+    const now = new Date();
+    const startTime = new Date(now.getTime() - 5 * 60000); // 5 minutes ago
     const testPayload = {
       event_type: 'test',
       status: 'test',
-      timestamp: new Date().toISOString(),
-      message: 'This is a test webhook from Pabbly Status Monitor',
+      timestamp: now.toISOString(),
       api: {
         id: 0,
         name: 'Test API',
@@ -233,11 +234,12 @@ export async function testWebhook() {
       },
       incident: {
         id: 0,
-        title: 'Test Incident',
-        description: 'This is a test incident for webhook configuration',
+        title: 'Test Webhook',
+        description: 'This is a test webhook from Status Monitor to verify your endpoint is working correctly',
         status: 'test',
-        started_at: new Date().toISOString(),
-        resolved_at: null
+        started_at: startTime.toISOString(),
+        resolved_at: now.toISOString(),
+        downtime_minutes: 5
       }
     };
 

@@ -38,6 +38,15 @@ CREATE TABLE IF NOT EXISTS system_settings (
   webhook_url TEXT,
   webhook_enabled BOOLEAN DEFAULT FALSE,
   data_retention_days INTEGER DEFAULT 90,
+
+  -- SMTP Email Settings
+  smtp_host TEXT,
+  smtp_port INTEGER DEFAULT 587,
+  smtp_user TEXT,
+  smtp_pass TEXT,
+  smtp_from TEXT,
+  smtp_recipients TEXT,
+
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 
   -- Ensure only one row exists
@@ -45,8 +54,8 @@ CREATE TABLE IF NOT EXISTS system_settings (
 );
 
 -- Insert default settings row
-INSERT INTO system_settings (id, page_title, brand_color, notifications_enabled, webhook_enabled, data_retention_days)
-VALUES (1, 'System Status', '#3b82f6', FALSE, FALSE, 90)
+INSERT INTO system_settings (id, page_title, brand_color, notifications_enabled, webhook_enabled, data_retention_days, smtp_port)
+VALUES (1, 'System Status', '#3b82f6', FALSE, FALSE, 90, 587)
 ON CONFLICT (id) DO NOTHING;
 
 

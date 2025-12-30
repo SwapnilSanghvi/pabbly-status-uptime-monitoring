@@ -1,5 +1,11 @@
 import { query, getClient } from '../config/database.js';
-import { testWebhook } from '../services/webhookService.js';
+import { testWebhook as testWebhookService } from '../services/webhookService.js';
+import { readFileSync } from 'fs';
+import { fileURLToPath } from 'url';
+import { dirname, join } from 'path';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 // ============================================
 // API MANAGEMENT
@@ -784,8 +790,295 @@ export const uploadLogo = async (req, res) => {
 };
 
 // ============================================
+// SMTP EMAIL SETTINGS
+// ============================================
+
+export const getEmailSettings = async (req, res) => {
+  try {
+    const result = await query(
+      'SELECT smtp_host, smtp_port, smtp_user, smtp_pass, smtp_from, smtp_recipients FROM system_settings WHERE id = 1'
+    );
+
+    if (result.rows.length === 0) {
+      return res.json({
+        success: true,
+        emailSettings: {
+          smtp_host: '',
+          smtp_port: 587,
+          smtp_user: '',
+          smtp_pass: '',
+          smtp_from: '',
+          smtp_recipients: '',
+        },
+      });
+    }
+
+    const settings = result.rows[0];
+
+    // Mask the password with placeholder if it exists
+    const emailSettings = {
+      smtp_host: settings.smtp_host || '',
+      smtp_port: settings.smtp_port || 587,
+      smtp_user: settings.smtp_user || '',
+      smtp_pass: settings.smtp_pass ? '••••••••••••••••' : '',
+      smtp_from: settings.smtp_from || '',
+      smtp_recipients: settings.smtp_recipients || '',
+    };
+
+    res.json({
+      success: true,
+      emailSettings: emailSettings,
+    });
+  } catch (error) {
+    console.error('Get email settings error:', error);
+    res.status(500).json({
+      error: 'Server error',
+      message: 'Failed to fetch email settings',
+    });
+  }
+};
+
+export const updateEmailSettings = async (req, res) => {
+  try {
+    const { smtp_host, smtp_port, smtp_user, smtp_pass, smtp_from, smtp_recipients } = req.body;
+
+    // Build the UPDATE query dynamically based on whether password is being updated
+    let updateQuery;
+    let values;
+
+    if (smtp_pass === '••••••••••••••••') {
+      // Don't update password if it's the placeholder
+      updateQuery = `
+        UPDATE system_settings
+        SET smtp_host = $1,
+            smtp_port = $2,
+            smtp_user = $3,
+            smtp_from = $4,
+            smtp_recipients = $5,
+            updated_at = CURRENT_TIMESTAMP
+        WHERE id = 1
+        RETURNING *
+      `;
+      values = [smtp_host, smtp_port, smtp_user, smtp_from, smtp_recipients];
+    } else {
+      // Update all fields including password
+      updateQuery = `
+        UPDATE system_settings
+        SET smtp_host = $1,
+            smtp_port = $2,
+            smtp_user = $3,
+            smtp_pass = $4,
+            smtp_from = $5,
+            smtp_recipients = $6,
+            updated_at = CURRENT_TIMESTAMP
+        WHERE id = 1
+        RETURNING *
+      `;
+      values = [smtp_host, smtp_port, smtp_user, smtp_pass, smtp_from, smtp_recipients];
+    }
+
+    await query(updateQuery, values);
+
+    res.json({
+      success: true,
+      message: 'Email settings updated successfully. Changes will take effect immediately.',
+    });
+  } catch (error) {
+    console.error('Update email settings error:', error);
+    res.status(500).json({
+      error: 'Server error',
+      message: 'Failed to update email settings',
+    });
+  }
+};
+
+export const testEmailSettings = async (req, res) => {
+  try {
+    const { sendEmail } = await import('../services/emailService.js');
+
+    // Get recipient emails from database
+    const settingsResult = await query(
+      'SELECT smtp_recipients FROM system_settings WHERE id = 1'
+    );
+
+    if (!settingsResult.rows.length || !settingsResult.rows[0].smtp_recipients) {
+      return res.status(400).json({
+        success: false,
+        message: 'No recipient emails configured. Please add at least one recipient email address.',
+      });
+    }
+
+    const recipientEmails = settingsResult.rows[0].smtp_recipients;
+
+    // Send test email to all configured recipients
+    const result = await sendEmail({
+      to: recipientEmails,
+      subject: 'Test Email - Status Monitor',
+      text: `This is a test email from Status Monitor.
+
+Your SMTP email configuration is working correctly!
+
+If you received this email, it means:
+✓ SMTP host and port are configured correctly
+✓ Authentication credentials are valid
+✓ Email delivery is functioning properly
+
+Sent at: ${new Date().toISOString()}
+
+---
+Status Monitor
+`,
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f9fafb;">
+          <div style="background-color: white; padding: 30px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+            <h2 style="color: #3b82f6; margin-top: 0;">✉️ Test Email - Status Monitor</h2>
+            <p style="color: #374151; line-height: 1.6;">This is a test email from Status Monitor.</p>
+            <p style="color: #374151; line-height: 1.6;"><strong>Your SMTP email configuration is working correctly!</strong></p>
+
+            <div style="background-color: #dbeafe; padding: 15px; border-radius: 6px; margin: 20px 0;">
+              <p style="margin: 5px 0; color: #1e40af;">✓ SMTP host and port are configured correctly</p>
+              <p style="margin: 5px 0; color: #1e40af;">✓ Authentication credentials are valid</p>
+              <p style="margin: 5px 0; color: #1e40af;">✓ Email delivery is functioning properly</p>
+            </div>
+
+            <p style="color: #6b7280; font-size: 14px; margin-top: 20px;">Sent at: ${new Date().toISOString()}</p>
+
+            <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 20px 0;">
+            <p style="color: #9ca3af; font-size: 12px; text-align: center;">Status Monitor</p>
+          </div>
+        </div>
+      `,
+    });
+
+    if (result.success) {
+      // Count number of recipients
+      const recipientCount = recipientEmails.split(',').map(e => e.trim()).filter(e => e).length;
+      const recipientText = recipientCount === 1 ? 'recipient' : `${recipientCount} recipients`;
+
+      res.json({
+        success: true,
+        message: `Test email sent successfully to ${recipientText}`,
+      });
+    } else {
+      res.status(500).json({
+        success: false,
+        error: 'Email sending failed',
+        message: result.error || 'Failed to send test email. Please check your SMTP configuration.',
+      });
+    }
+  } catch (error) {
+    console.error('Test email error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Server error',
+      message: error.message || 'Failed to send test email. Please check your SMTP configuration and make sure the backend has been restarted after updating email settings.',
+    });
+  }
+};
+
+// ============================================
 // WEBHOOKS
 // ============================================
+
+export const testWebhook = async (req, res) => {
+  try {
+    // Get webhook settings from database
+    const settingsResult = await query(
+      'SELECT webhook_url, webhook_enabled FROM system_settings WHERE id = 1'
+    );
+
+    if (settingsResult.rows.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Webhook settings not found',
+      });
+    }
+
+    const settings = settingsResult.rows[0];
+
+    if (!settings.webhook_url) {
+      return res.status(400).json({
+        success: false,
+        message: 'Webhook URL is not configured',
+      });
+    }
+
+    // Create test payload (matches real webhook structure - simulates an api_up event with resolution)
+    const now = new Date();
+    const incidentStart = new Date(now.getTime() - 5 * 60000); // 5 minutes ago
+    const testPayload = {
+      event_type: 'test',
+      status: 'test',
+      timestamp: now.toISOString(),
+      api: {
+        id: 0,
+        name: 'Test API',
+        url: 'https://example.com/test',
+        monitoring_interval: 60,
+        expected_status_code: 200,
+      },
+      incident: {
+        id: 0,
+        title: 'Test Webhook',
+        description: 'This is a test webhook from Status Monitor to verify your endpoint is working correctly',
+        status: 'test',
+        started_at: incidentStart.toISOString(),
+        resolved_at: now.toISOString(),
+        downtime_minutes: 5,
+      },
+    };
+
+    // Send webhook
+    const startTime = Date.now();
+    try {
+      const response = await fetch(settings.webhook_url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'User-Agent': 'Status-Monitor-Webhook/1.0',
+        },
+        body: JSON.stringify(testPayload),
+      });
+
+      const responseTime = Date.now() - startTime;
+      const statusCode = response.status;
+      const success = statusCode >= 200 && statusCode < 300;
+
+      if (success) {
+        res.json({
+          success: true,
+          message: `Test webhook sent successfully to ${settings.webhook_url}`,
+          details: {
+            status_code: statusCode,
+            response_time_ms: responseTime,
+          },
+        });
+      } else {
+        res.status(500).json({
+          success: false,
+          message: `Webhook endpoint returned status ${statusCode}`,
+          details: {
+            status_code: statusCode,
+            response_time_ms: responseTime,
+          },
+        });
+      }
+    } catch (webhookError) {
+      res.status(500).json({
+        success: false,
+        message: `Failed to send webhook: ${webhookError.message}`,
+        error: webhookError.message,
+      });
+    }
+  } catch (error) {
+    console.error('Test webhook error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Server error',
+      message: error.message || 'Failed to send test webhook',
+    });
+  }
+};
 
 export const getWebhookLogs = async (req, res) => {
   try {
@@ -832,7 +1125,7 @@ export const getWebhookLogs = async (req, res) => {
 
 export const testWebhookEndpoint = async (req, res) => {
   try {
-    const result = await testWebhook();
+    const result = await testWebhookService();
 
     if (result.success) {
       res.json({
@@ -893,6 +1186,30 @@ export const reorderAPIs = async (req, res) => {
     res.status(500).json({
       error: 'Server error',
       message: 'Failed to update API order',
+    });
+  }
+};
+
+// ============================================
+// VERSION
+// ============================================
+
+// Get application version
+export const getVersion = async (req, res) => {
+  try {
+    const packageJsonPath = join(__dirname, '../../package.json');
+    const packageJson = JSON.parse(readFileSync(packageJsonPath, 'utf8'));
+
+    res.json({
+      success: true,
+      version: packageJson.version,
+      name: packageJson.name,
+    });
+  } catch (error) {
+    console.error('Get version error:', error);
+    res.status(500).json({
+      error: 'Server error',
+      message: 'Failed to fetch version',
     });
   }
 };

@@ -1,35 +1,56 @@
-import nodemailer from 'nodemailer';
+import { createTransport } from 'nodemailer';
 import { query } from '../config/database.js';
 
-// Create reusable transporter
-let transporter = null;
-
 /**
- * Initialize email transporter
+ * Get SMTP settings from database
  */
-function initializeTransporter() {
-  if (transporter) {
-    return transporter;
-  }
+async function getSMTPSettings() {
+  try {
+    const result = await query(
+      'SELECT smtp_host, smtp_port, smtp_user, smtp_pass, smtp_from FROM system_settings WHERE id = 1'
+    );
 
-  // Only initialize if SMTP settings are configured
-  if (!process.env.SMTP_HOST || !process.env.SMTP_USER) {
-    console.log('⚠️  Email notifications disabled (SMTP not configured)');
+    if (result.rows.length === 0) {
+      return null;
+    }
+
+    const settings = result.rows[0];
+
+    // Only return settings if host and user are configured
+    if (!settings.smtp_host || !settings.smtp_user) {
+      return null;
+    }
+
+    return settings;
+  } catch (error) {
+    console.error('Error fetching SMTP settings from database:', error);
     return null;
   }
+}
 
+/**
+ * Initialize email transporter with database settings
+ */
+async function initializeTransporter() {
   try {
-    transporter = nodemailer.createTransporter({
-      host: process.env.SMTP_HOST,
-      port: parseInt(process.env.SMTP_PORT) || 587,
+    const smtpSettings = await getSMTPSettings();
+
+    if (!smtpSettings) {
+      console.log('⚠️  Email notifications disabled (SMTP not configured)');
+      return null;
+    }
+
+    const transporter = createTransport({
+      host: smtpSettings.smtp_host,
+      port: parseInt(smtpSettings.smtp_port) || 587,
       secure: false, // true for 465, false for other ports
       auth: {
-        user: process.env.SMTP_USER,
-        pass: process.env.SMTP_PASS,
+        user: smtpSettings.smtp_user,
+        pass: smtpSettings.smtp_pass,
       },
     });
 
-    console.log('✅ Email transporter initialized');
+    console.log('✅ Email transporter initialized from database settings');
     return transporter;
   } catch (error) {
     console.error('❌ Error initializing email transporter:', error);
@@ -38,26 +59,45 @@ function initializeTransporter() {
 }
 
 /**
- * Check if email notifications are enabled
+ * Check if email notifications are enabled (based on SMTP configuration)
  */
 async function areNotificationsEnabled() {
   try {
     const result = await query(
-      'SELECT notifications_enabled, notification_email FROM system_settings WHERE id = 1'
+      'SELECT smtp_host, smtp_port, smtp_user, smtp_recipients, notification_email FROM system_settings WHERE id = 1'
     );
 
     if (result.rows.length === 0) {
-      return { enabled: false, email: null };
+      return { enabled: false, emails: [] };
     }
 
     const settings = result.rows[0];
+
+    // Check if SMTP is configured (host, port, user must be present)
+    const smtpConfigured = settings.smtp_host && settings.smtp_port && settings.smtp_user;
+
+    if (!smtpConfigured) {
+      return { enabled: false, emails: [] };
+    }
+
+    // Get recipient emails
+    let recipientEmails = [];
+    if (settings.smtp_recipients && settings.smtp_recipients.trim()) {
+      // Split by comma and trim whitespace
+      recipientEmails = settings.smtp_recipients.split(',').map(email => email.trim()).filter(email => email);
+    } else if (settings.notification_email && settings.notification_email.trim()) {
+      // Fallback to old notification_email field
+      recipientEmails = [settings.notification_email.trim()];
+    }
+
+    // Enabled only if SMTP is configured AND there are recipients
     return {
-      enabled: settings.notifications_enabled && !!settings.notification_email,
-      email: settings.notification_email,
+      enabled: recipientEmails.length > 0,
+      emails: recipientEmails,
     };
   } catch (error) {
     console.error('Error checking notification settings:', error);
-    return { enabled: false, email: null };
+    return { enabled: false, emails: [] };
   }
 }
 
@@ -74,15 +114,18 @@ export async function sendDowntimeAlert(api, incident) {
       return;
     }
 
-    // Initialize transporter if not already done
-    const emailTransporter = initializeTransporter();
+    // Initialize transporter with database settings
+    const emailTransporter = await initializeTransporter();
 
     if (!emailTransporter) {
       console.log('   ⚠️  Email transporter not available');
       return;
     }
 
-    const recipientEmail = notificationSettings.email;
+    // Get SMTP settings for 'from' address
+    const smtpSettings = await getSMTPSettings();
+
+    const recipientEmails = notificationSettings.emails.join(', ');
 
     // Email content
     const subject = `🔴 ALERT: ${api.name} is DOWN`;
@@ -169,8 +212,8 @@ Timestamp: ${new Date().toLocaleString()}
 
     // Send email
     const mailOptions = {
-      from: process.env.SMTP_FROM || `"Status Monitor" <${process.env.SMTP_USER}>`,
-      to: recipientEmail,
+      from: smtpSettings.smtp_from || `"Status Monitor" <${smtpSettings.smtp_user}>`,
+      bcc: recipientEmails,
       subject: subject,
       text: textContent,
       html: htmlContent,
@@ -178,7 +221,7 @@ Timestamp: ${new Date().toLocaleString()}
 
     await emailTransporter.sendMail(mailOptions);
 
-    console.log(`   📧 Downtime alert sent to ${recipientEmail}`);
+    console.log(`   📧 Downtime alert sent to ${recipientEmails}`);
   } catch (error) {
     console.error('Error sending downtime alert email:', error);
   }
@@ -195,13 +238,16 @@ export async function sendRecoveryNotification(api, incident, downtimeMinutes) {
       return;
     }
 
-    const emailTransporter = initializeTransporter();
+    const emailTransporter = await initializeTransporter();
 
     if (!emailTransporter) {
       return;
     }
 
-    const recipientEmail = notificationSettings.email;
+    // Get SMTP settings for 'from' address
+    const smtpSettings = await getSMTPSettings();
+
+    const recipientEmails = notificationSettings.emails.join(', ');
 
     const subject = `🟢 RESOLVED: ${api.name} is back online`;
     const htmlContent = `
@@ -266,17 +312,68 @@ export async function sendRecoveryNotification(api, incident, downtimeMinutes) {
     `;
 
     const mailOptions = {
-      from: process.env.SMTP_FROM || `"Status Monitor" <${process.env.SMTP_USER}>`,
-      to: recipientEmail,
+      from: smtpSettings.smtp_from || `"Status Monitor" <${smtpSettings.smtp_user}>`,
+      bcc: recipientEmails,
       subject: subject,
       html: htmlContent,
     };
 
     await emailTransporter.sendMail(mailOptions);
 
-    console.log(`   📧 Recovery notification sent to ${recipientEmail}`);
+    console.log(`   📧 Recovery notification sent to ${recipientEmails}`);
   } catch (error) {
     console.error('Error sending recovery notification:', error);
+  }
+}
+
+/**
+ * Send a generic email
+ */
+export async function sendEmail({ to, subject, text, html }) {
+  try {
+    const emailTransporter = await initializeTransporter();
+
+    if (!emailTransporter) {
+      return {
+        success: false,
+        error: 'Email transporter not configured. Please check your SMTP settings in the Admin Settings.',
+      };
+    }
+
+    // Get SMTP settings for 'from' address
+    const smtpSettings = await getSMTPSettings();
+
+    // Verify SMTP connection first
+    try {
+      await emailTransporter.verify();
+    } catch (verifyError) {
+      return {
+        success: false,
+        error: `SMTP connection failed: ${verifyError.message}`,
+      };
+    }
+
+    // Send email
+    const mailOptions = {
+      from: smtpSettings.smtp_from || `"Status Monitor" <${smtpSettings.smtp_user}>`,
+      bcc: to,
+      subject: subject,
+      text: text,
+      html: html,
+    };
+
+    await emailTransporter.sendMail(mailOptions);
+
+    return {
+      success: true,
+      message: `Email sent successfully to ${to}`,
+    };
+  } catch (error) {
+    console.error('Error sending email:', error);
+    return {
+      success: false,
+      error: error.message || 'Failed to send email',
+    };
   }
 }
 
@@ -285,7 +382,7 @@ export async function sendRecoveryNotification(api, incident, downtimeMinutes) {
  */
 export async function testEmailConfiguration() {
   try {
-    const emailTransporter = initializeTransporter();
+    const emailTransporter = await initializeTransporter();
 
     if (!emailTransporter) {
       return {
@@ -320,6 +417,7 @@ export async function testEmailConfiguration() {
 }
 
 export default {
+  sendEmail,
   sendDowntimeAlert,
   sendRecoveryNotification,
   testEmailConfiguration,
