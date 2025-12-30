@@ -7,6 +7,8 @@ import {
   PointerSensor,
   useSensor,
   useSensors,
+  DragOverlay,
+  useDroppable,
 } from '@dnd-kit/core';
 import {
   arrayMove,
@@ -16,10 +18,60 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { deleteAPI, reorderAPIs } from '../../services/adminService';
+import { deleteAPI, reorderAPIs, getAPIGroups, updateAPI } from '../../services/adminService';
 import Timestamp from '../shared/Timestamp';
 import { useTimezone } from '../../contexts/TimezoneContext';
 import { getTimezoneAbbreviation } from '../../utils/timezone';
+
+// Droppable Group Header Component
+function DroppableGroupHeader({ group, isCollapsed, onToggle, activeId }) {
+  const { setNodeRef, isOver } = useDroppable({
+    id: `group-${group.group_id}`,
+  });
+
+  const isDraggingOver = isOver && activeId;
+
+  return (
+    <tr
+      ref={setNodeRef}
+      className={`${isDraggingOver ? 'bg-blue-100' : 'bg-gray-100'} ${
+        group.group_order > 0 ? 'border-t-4 border-gray-200' : ''
+      } transition-colors duration-200`}
+    >
+      <td colSpan="6" className="px-6 py-3">
+        <div
+          className={`flex items-center cursor-pointer hover:bg-gray-200 -mx-6 -my-3 px-6 py-3 transition-colors ${
+            isDraggingOver ? 'ring-2 ring-blue-500 ring-inset' : ''
+          }`}
+          onClick={onToggle}
+        >
+          <svg
+            className={`h-4 w-4 mr-2 text-gray-500 transition-transform ${isCollapsed ? '' : 'rotate-180'}`}
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+          </svg>
+          <svg className="h-4 w-4 mr-2 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+          </svg>
+          <h3 className="text-sm font-semibold text-gray-700 flex items-center">
+            {group.group_name}
+            <span className="ml-2 text-xs font-normal text-gray-500">
+              ({group.apis.length} {group.apis.length === 1 ? 'API' : 'APIs'})
+            </span>
+          </h3>
+          {isDraggingOver && (
+            <span className="ml-auto text-xs font-medium text-blue-600">
+              Drop here to move
+            </span>
+          )}
+        </div>
+      </td>
+    </tr>
+  );
+}
 
 function SortableRow({ api, onEdit, handleDelete, deleting, getStatusBadge }) {
   const { timezone } = useTimezone();
@@ -253,6 +305,8 @@ export default function APITable({ apis, onEdit, onDelete, onAdd, onReorder }) {
   const [deleting, setDeleting] = useState(null);
   const [items, setItems] = useState(apis);
   const [collapsedGroups, setCollapsedGroups] = useState({});
+  const [allGroups, setAllGroups] = useState([]);
+  const [activeId, setActiveId] = useState(null);
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -261,28 +315,56 @@ export default function APITable({ apis, onEdit, onDelete, onAdd, onReorder }) {
     })
   );
 
+  // Fetch all groups when component mounts
+  useEffect(() => {
+    const fetchGroups = async () => {
+      try {
+        const response = await getAPIGroups();
+        setAllGroups(response.groups || []);
+      } catch (error) {
+        console.error('Error fetching groups:', error);
+      }
+    };
+    fetchGroups();
+  }, []);
+
   // Update items when apis prop changes
   useEffect(() => {
     setItems(apis);
   }, [apis]);
 
-  // Group APIs by group_id
+  // Group APIs by group_id, including empty groups
   const groupedAPIs = useMemo(() => {
+    // Create a map of all groups with empty API arrays
     const grouped = {};
-    items.forEach(api => {
-      const groupKey = api.group_id || 'ungrouped';
-      if (!grouped[groupKey]) {
-        grouped[groupKey] = {
-          group_id: api.group_id,
-          group_name: api.group_name || 'Ungrouped',
-          group_order: api.group_order !== undefined ? api.group_order : 999,
-          apis: []
-        };
-      }
-      grouped[groupKey].apis.push(api);
+
+    // First, add all groups from the allGroups list
+    allGroups.forEach(group => {
+      grouped[group.id] = {
+        group_id: group.id,
+        group_name: group.name,
+        group_order: group.display_order,
+        is_default: group.is_default,
+        apis: []
+      };
     });
+
+    // Then, populate with APIs
+    items.forEach(api => {
+      const groupKey = api.group_id;
+      if (groupKey && grouped[groupKey]) {
+        grouped[groupKey].apis.push(api);
+      } else {
+        // If API has no group or group not found, add to ungrouped
+        const defaultGroup = allGroups.find(g => g.is_default);
+        if (defaultGroup && grouped[defaultGroup.id]) {
+          grouped[defaultGroup.id].apis.push(api);
+        }
+      }
+    });
+
     return Object.values(grouped).sort((a, b) => a.group_order - b.group_order);
-  }, [items]);
+  }, [items, allGroups]);
 
   const handleDelete = async (api) => {
     if (!window.confirm(`Are you sure you want to delete "${api.name}"?`)) {
@@ -304,8 +386,47 @@ export default function APITable({ apis, onEdit, onDelete, onAdd, onReorder }) {
 
   const handleDragEnd = async (event) => {
     const { active, over } = event;
+    setActiveId(null);
 
-    if (!over || active.id === over.id) {
+    if (!over) {
+      return;
+    }
+
+    const activeAPI = items.find((item) => item.id === active.id);
+
+    // Check if dropped on a group header (over.id will be a string like "group-{id}")
+    if (typeof over.id === 'string' && over.id.startsWith('group-')) {
+      const targetGroupId = parseInt(over.id.replace('group-', ''));
+
+      // Don't do anything if dropped on the same group
+      if (activeAPI.group_id === targetGroupId) {
+        return;
+      }
+
+      // Move API to new group
+      try {
+        await updateAPI(activeAPI.id, { group_id: targetGroupId });
+        toast.success(`Moved "${activeAPI.name}" to new group`);
+
+        // Update local state
+        const updatedItems = items.map(item =>
+          item.id === activeAPI.id ? { ...item, group_id: targetGroupId } : item
+        );
+        setItems(updatedItems);
+
+        // Notify parent to refresh
+        if (onReorder) {
+          onReorder(updatedItems);
+        }
+      } catch (error) {
+        console.error('Move to group error:', error);
+        toast.error('Failed to move API to new group');
+      }
+      return;
+    }
+
+    // Standard reordering within the same group
+    if (active.id === over.id) {
       return;
     }
 
@@ -313,11 +434,10 @@ export default function APITable({ apis, onEdit, onDelete, onAdd, onReorder }) {
     const newIndex = items.findIndex((item) => item.id === over.id);
 
     // Check if both items are in the same group
-    const activeAPI = items[oldIndex];
     const overAPI = items[newIndex];
 
     if (activeAPI.group_id !== overAPI.group_id) {
-      toast.error('Can only reorder APIs within the same group');
+      toast.error('Drag to a group header to move between groups');
       return;
     }
 
@@ -340,6 +460,10 @@ export default function APITable({ apis, onEdit, onDelete, onAdd, onReorder }) {
       // Revert on error
       setItems(apis);
     }
+  };
+
+  const handleDragStart = (event) => {
+    setActiveId(event.active.id);
   };
 
   const toggleGroup = (groupId) => {
@@ -418,6 +542,7 @@ export default function APITable({ apis, onEdit, onDelete, onAdd, onReorder }) {
         <DndContext
           sensors={sensors}
           collisionDetection={closestCenter}
+          onDragStart={handleDragStart}
           onDragEnd={handleDragEnd}
         >
           <table className="min-w-full table-fixed">
@@ -452,32 +577,12 @@ export default function APITable({ apis, onEdit, onDelete, onAdd, onReorder }) {
                 return (
                   <React.Fragment key={group.group_id || 'ungrouped'}>
                     {/* Group Header Row */}
-                    <tr className={`bg-gray-100 ${groupIndex > 0 ? 'border-t-4 border-gray-200' : ''}`}>
-                      <td colSpan="6" className="px-6 py-3">
-                        <div
-                          className="flex items-center cursor-pointer hover:bg-gray-200 -mx-6 -my-3 px-6 py-3 transition-colors"
-                          onClick={() => toggleGroup(group.group_id || 'ungrouped')}
-                        >
-                          <svg
-                            className={`h-4 w-4 mr-2 text-gray-500 transition-transform ${isCollapsed ? '' : 'rotate-180'}`}
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            stroke="currentColor"
-                          >
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                          </svg>
-                          <svg className="h-4 w-4 mr-2 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-                          </svg>
-                          <h3 className="text-sm font-semibold text-gray-700 flex items-center">
-                            {group.group_name}
-                            <span className="ml-2 text-xs font-normal text-gray-500">
-                              ({group.apis.length} {group.apis.length === 1 ? 'API' : 'APIs'})
-                            </span>
-                          </h3>
-                        </div>
-                      </td>
-                    </tr>
+                    <DroppableGroupHeader
+                      group={{ ...group, group_order: groupIndex }}
+                      isCollapsed={isCollapsed}
+                      onToggle={() => toggleGroup(group.group_id || 'ungrouped')}
+                      activeId={activeId}
+                    />
 
                     {/* API Rows for this group - Only show if not collapsed */}
                     {!isCollapsed && (
@@ -506,7 +611,7 @@ export default function APITable({ apis, onEdit, onDelete, onAdd, onReorder }) {
       </div>
 
       <div className="px-6 py-3 bg-gray-50 border-t border-gray-200 text-xs text-gray-500">
-        💡 Tip: Drag the ☰ icon to reorder APIs within the same group. The order will be saved automatically.
+        💡 Tip: Drag the ☰ icon to reorder APIs within a group, or drag to a group header to move APIs between groups. Changes are saved automatically.
       </div>
     </div>
   );
