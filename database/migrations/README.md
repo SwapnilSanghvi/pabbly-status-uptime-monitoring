@@ -8,7 +8,7 @@ Follow these steps to apply database migrations after pulling new code:
 
 ```bash
 # 1. Navigate to your installation directory
-cd /opt/status-monitor  # or /root/status-monitor (depends on your installation)
+cd /opt/status-monitor
 
 # 2. Pull the latest code
 git pull
