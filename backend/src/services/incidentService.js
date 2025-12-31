@@ -1,5 +1,5 @@
 import { query } from '../config/database.js';
-import { sendDowntimeAlert } from './emailService.js';
+import { sendDowntimeAlert, sendRecoveryNotification } from './emailService.js';
 import { sendWebhook } from './webhookService.js';
 
 /**
@@ -98,6 +98,9 @@ export async function autoResolveIncident(api) {
       `SELECT * FROM incidents WHERE id = $1`,
       [incident.id]
     );
+
+    // Send email recovery notification if enabled
+    await sendRecoveryNotification(api, updatedIncident.rows[0], durationMinutes);
 
     // Send webhook notification for API up
     await sendWebhook('api_up', api, updatedIncident.rows[0]);
