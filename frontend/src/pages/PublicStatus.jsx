@@ -26,6 +26,7 @@ function PublicStatusContent() {
   const [privateServices, setPrivateServices] = useState([]);
   const [viewMode, setViewMode] = useState('public'); // 'public' or 'private'
   const [collapsedGroups, setCollapsedGroups] = useState({});
+  const [activeTooltip, setActiveTooltip] = useState(null); // For mobile tooltip on tap
 
   // Fetch all data
   const fetchData = useCallback(async () => {
@@ -184,28 +185,70 @@ function PublicStatusContent() {
   };
 
   // Get status badge for groups
-  const getGroupStatusBadge = (status) => {
+  const getGroupStatusBadge = (status, groupId) => {
+    const tooltipId = `group-${groupId}`;
+    const isTooltipVisible = activeTooltip === tooltipId;
+
+    const handleTooltipClick = (e) => {
+      e.stopPropagation(); // Prevent group collapse toggle
+      setActiveTooltip(isTooltipVisible ? null : tooltipId);
+      // Auto-hide after 2 seconds
+      if (!isTooltipVisible) {
+        setTimeout(() => setActiveTooltip(null), 2000);
+      }
+    };
+
     if (status === 'operational') {
       return (
-        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-          <span className="h-2 w-2 rounded-full bg-green-500 mr-1.5"></span>
-          All Operational
-        </span>
+        <>
+          {/* Mobile: Just the dot with tooltip */}
+          <span className="sm:hidden relative" onClick={handleTooltipClick}>
+            <span className="h-3 w-3 rounded-full bg-green-500 block cursor-pointer"></span>
+            <span className={`absolute bottom-full right-0 mb-2 px-2 py-1 text-xs font-medium text-white bg-gray-800 rounded shadow-lg whitespace-nowrap transition-opacity z-50 ${isTooltipVisible ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
+              All Operational
+            </span>
+          </span>
+          {/* Desktop: Full badge */}
+          <span className="hidden sm:inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+            <span className="h-2 w-2 rounded-full bg-green-500 mr-1.5"></span>
+            All Operational
+          </span>
+        </>
       );
     }
     if (status === 'major_outage') {
       return (
-        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
-          <span className="h-2 w-2 rounded-full bg-red-500 mr-1.5"></span>
-          Major Outage
-        </span>
+        <>
+          {/* Mobile: Just the dot with tooltip */}
+          <span className="sm:hidden relative" onClick={handleTooltipClick}>
+            <span className="h-3 w-3 rounded-full bg-red-500 block cursor-pointer"></span>
+            <span className={`absolute bottom-full right-0 mb-2 px-2 py-1 text-xs font-medium text-white bg-gray-800 rounded shadow-lg whitespace-nowrap transition-opacity z-50 ${isTooltipVisible ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
+              Major Outage
+            </span>
+          </span>
+          {/* Desktop: Full badge */}
+          <span className="hidden sm:inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+            <span className="h-2 w-2 rounded-full bg-red-500 mr-1.5"></span>
+            Major Outage
+          </span>
+        </>
       );
     }
     return (
-      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
-        <span className="h-2 w-2 rounded-full bg-yellow-500 mr-1.5"></span>
-        Partial Outage
-      </span>
+      <>
+        {/* Mobile: Just the dot with tooltip */}
+        <span className="sm:hidden relative" onClick={handleTooltipClick}>
+          <span className="h-3 w-3 rounded-full bg-yellow-500 block cursor-pointer"></span>
+          <span className={`absolute bottom-full right-0 mb-2 px-2 py-1 text-xs font-medium text-white bg-gray-800 rounded shadow-lg whitespace-nowrap transition-opacity z-50 ${isTooltipVisible ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
+            Partial Outage
+          </span>
+        </span>
+        {/* Desktop: Full badge */}
+        <span className="hidden sm:inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+          <span className="h-2 w-2 rounded-full bg-yellow-500 mr-1.5"></span>
+          Partial Outage
+        </span>
+      </>
     );
   };
 
@@ -328,46 +371,44 @@ function PublicStatusContent() {
               </p>
             </div>
           ) : (
-            <div className="space-y-8">
+            <div className="space-y-4 sm:space-y-8">
               {groupedServices.map(group => {
                 const groupStatus = getGroupStatus(group.services);
                 const isCollapsed = collapsedGroups[group.id];
 
                 return (
-                  <div key={group.id || 'ungrouped'} className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+                  <div key={group.id || 'ungrouped'} className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-visible">
                     {/* Group Header */}
                     <div
-                      className="flex items-center justify-between p-4 bg-white border-b border-gray-200 cursor-pointer hover:bg-gray-25 transition-colors"
+                      className="flex items-center justify-between p-3 sm:p-4 bg-white border-b border-gray-200 cursor-pointer hover:bg-gray-50 transition-colors rounded-t-lg"
                       onClick={() => toggleGroup(group.id)}
                     >
-                      <div className="flex items-center gap-3 flex-1">
+                      <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
                         <svg
-                          className={`h-5 w-5 text-gray-500 transition-transform ${isCollapsed ? '' : 'rotate-180'}`}
+                          className={`h-4 w-4 sm:h-5 sm:w-5 text-gray-500 transition-transform flex-shrink-0 ${isCollapsed ? '' : 'rotate-180'}`}
                           fill="none"
                           viewBox="0 0 24 24"
                           stroke="currentColor"
                         >
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                         </svg>
-                        <div className="flex items-center gap-2">
-                          <svg className="h-5 w-5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-                          </svg>
-                          <h3 className="text-lg font-semibold text-gray-900">{group.name}</h3>
-                        </div>
-                        <span className="text-sm text-gray-500">
-                          ({group.services.length} {group.services.length === 1 ? 'service' : 'services'})
+                        <svg className="h-4 w-4 sm:h-5 sm:w-5 text-gray-500 flex-shrink-0 hidden sm:block" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                        </svg>
+                        <h3 className="text-sm sm:text-lg font-semibold text-gray-900 truncate">{group.name}</h3>
+                        <span className="text-xs sm:text-sm text-gray-500 flex-shrink-0">
+                          ({group.services.length})
                         </span>
                       </div>
-                      <div className="flex items-center gap-3">
-                        {getGroupStatusBadge(groupStatus)}
+                      <div className="flex items-center flex-shrink-0 ml-2">
+                        {getGroupStatusBadge(groupStatus, group.id)}
                       </div>
                     </div>
 
                     {/* Group Services */}
                     {!isCollapsed && (
-                      <div className="p-6">
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                      <div className="p-3 sm:p-6">
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 sm:gap-6">
                           {group.services.map((service) => (
                             <ServiceCard
                               key={service.id}
