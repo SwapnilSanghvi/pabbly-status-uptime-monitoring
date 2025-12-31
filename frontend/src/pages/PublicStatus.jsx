@@ -380,12 +380,12 @@ function PublicStatusContent() {
                   <div key={group.id || 'ungrouped'} className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-visible">
                     {/* Group Header */}
                     <div
-                      className="flex items-center justify-between p-3 sm:p-4 bg-white border-b border-gray-200 cursor-pointer hover:bg-gray-50 transition-colors rounded-t-lg"
+                      className="flex items-center justify-between p-3 sm:p-4 bg-gray-50 sm:bg-white border-b border-gray-200 cursor-pointer hover:bg-gray-100 sm:hover:bg-gray-50 transition-colors rounded-t-lg"
                       onClick={() => toggleGroup(group.id)}
                     >
                       <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
                         <svg
-                          className={`h-4 w-4 sm:h-5 sm:w-5 text-gray-500 transition-transform flex-shrink-0 ${isCollapsed ? '' : 'rotate-180'}`}
+                          className={`h-4 w-4 sm:h-5 sm:w-5 text-gray-600 transition-transform flex-shrink-0 ${isCollapsed ? '' : 'rotate-180'}`}
                           fill="none"
                           viewBox="0 0 24 24"
                           stroke="currentColor"
@@ -395,7 +395,7 @@ function PublicStatusContent() {
                         <svg className="h-4 w-4 sm:h-5 sm:w-5 text-gray-500 flex-shrink-0 hidden sm:block" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
                         </svg>
-                        <h3 className="text-sm sm:text-lg font-semibold text-gray-900 truncate">{group.name}</h3>
+                        <h3 className="text-base sm:text-lg font-bold text-gray-900 truncate">{group.name}</h3>
                         <span className="text-xs sm:text-sm text-gray-500 flex-shrink-0">
                           ({group.services.length})
                         </span>
