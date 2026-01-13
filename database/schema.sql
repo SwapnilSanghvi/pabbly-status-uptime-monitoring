@@ -157,6 +157,7 @@ CREATE TABLE IF NOT EXISTS incidents (
   title VARCHAR(255) NOT NULL,
   description TEXT,
   status VARCHAR(50) DEFAULT 'ongoing', -- 'ongoing', 'identified', 'monitoring', 'resolved'
+  status_code INTEGER, -- HTTP status code that caused the incident (null for timeouts/connection failures)
   started_at TIMESTAMP NOT NULL,
   resolved_at TIMESTAMP,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,

@@ -10,9 +10,10 @@ import pool from '../config/database.js';
  * @param {string} eventType - 'api_down' or 'api_up'
  * @param {object} api - API object with id, name, url, etc.
  * @param {object} incident - Incident object with details
+ * @param {number|null} currentStatusCode - Current HTTP status code (for api_up events, this is the recovery code like 200)
  * @returns {object} Webhook payload
  */
-function buildWebhookPayload(eventType, api, incident) {
+function buildWebhookPayload(eventType, api, incident, currentStatusCode = null) {
   const status = eventType === 'api_down' ? 'down' : 'up';
 
   // Calculate downtime in minutes if incident is resolved
@@ -22,6 +23,13 @@ function buildWebhookPayload(eventType, api, incident) {
     const end = new Date(incident.resolved_at);
     downtimeMinutes = Math.round((end - start) / 60000);
   }
+
+  // Determine the status code to send:
+  // - For api_down: use incident.status_code (the error code that caused the incident)
+  // - For api_up: use currentStatusCode (the recovery code, e.g., 200)
+  const statusCodeToSend = eventType === 'api_up' && currentStatusCode
+    ? currentStatusCode
+    : (incident.status_code || null);
 
   return {
     event_type: eventType,
@@ -39,6 +47,7 @@ function buildWebhookPayload(eventType, api, incident) {
       title: incident.title,
       description: incident.description,
       status: incident.status,
+      status_code: statusCodeToSend,
       started_at: incident.started_at,
       resolved_at: incident.resolved_at || null,
       ...(downtimeMinutes !== null && { downtime_minutes: downtimeMinutes })
@@ -77,8 +86,9 @@ async function logWebhookDelivery(webhookUrl, eventType, apiId, incidentId, payl
  * @param {string} eventType - 'api_down' or 'api_up'
  * @param {object} api - API object
  * @param {object} incident - Incident object
+ * @param {number|null} currentStatusCode - Current HTTP status code (for api_up, this is the recovery code like 200)
  */
-export async function sendWebhook(eventType, api, incident) {
+export async function sendWebhook(eventType, api, incident, currentStatusCode = null) {
   // Execute webhook asynchronously without blocking
   setImmediate(async () => {
     const startTime = Date.now();
@@ -111,9 +121,7 @@ export async function sendWebhook(eventType, api, incident) {
       }
 
       // Build payload
-      const payload = buildWebhookPayload(eventType, api, incident);
-
-      console.log(`Sending webhook: ${eventType} for API ${api.name} to ${webhook_url}`);
+      const payload = buildWebhookPayload(eventType, api, incident, currentStatusCode);
 
       // Send webhook with 10-second timeout
       const controller = new AbortController();
@@ -175,7 +183,7 @@ export async function sendWebhook(eventType, api, incident) {
         const webhook_url = settingsResult.rows[0]?.webhook_url || 'unknown';
 
         // Build payload for logging (even if webhook failed)
-        const payload = buildWebhookPayload(eventType, api, incident);
+        const payload = buildWebhookPayload(eventType, api, incident, currentStatusCode);
 
         await logWebhookDelivery(
           webhook_url,
@@ -220,7 +228,7 @@ export async function testWebhook() {
 
     // Build test payload (matches real webhook structure - simulates an api_up event with resolution)
     const now = new Date();
-    const startTime = new Date(now.getTime() - 5 * 60000); // 5 minutes ago
+    const testStartTime = new Date(now.getTime() - 5 * 60000); // 5 minutes ago
     const testPayload = {
       event_type: 'test',
       status: 'test',
@@ -237,7 +245,8 @@ export async function testWebhook() {
         title: 'Test Webhook',
         description: 'This is a test webhook from Status Monitor to verify your endpoint is working correctly',
         status: 'test',
-        started_at: startTime.toISOString(),
+        status_code: 500, // Example status code for test
+        started_at: testStartTime.toISOString(),
         resolved_at: now.toISOString(),
         downtime_minutes: 5
       }
