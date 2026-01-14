@@ -110,7 +110,6 @@ export async function sendDowntimeAlert(api, incident) {
     const notificationSettings = await areNotificationsEnabled();
 
     if (!notificationSettings.enabled) {
-      console.log('   📧 Email notifications disabled');
       return;
     }
 
@@ -118,7 +117,6 @@ export async function sendDowntimeAlert(api, incident) {
     const emailTransporter = await initializeTransporter();
 
     if (!emailTransporter) {
-      console.log('   ⚠️  Email transporter not available');
       return;
     }
 
@@ -126,88 +124,142 @@ export async function sendDowntimeAlert(api, incident) {
     const smtpSettings = await getSMTPSettings();
 
     const recipientEmails = notificationSettings.emails.join(', ');
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+    const startedAt = new Date(incident.started_at).toLocaleString();
+
+    // Build status code info
+    const statusCode = incident.status_code;
+    const statusCodeText = statusCode
+      ? `${statusCode}`
+      : 'N/A (Connection failed or timeout)';
+    const errorMessage = statusCode
+      ? `Unexpected status code: ${statusCode} (expected ${api.expected_status_code})`
+      : 'Connection failed or request timed out';
 
     // Email content
-    const subject = `🔴 ALERT: ${api.name} is DOWN`;
+    const subject = `🔴 ALERT: ${api.name} is Down`;
     const htmlContent = `
       <!DOCTYPE html>
       <html>
         <head>
-          <style>
-            body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-            .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-            .header { background-color: #dc2626; color: white; padding: 20px; border-radius: 5px 5px 0 0; }
-            .content { background-color: #f9fafb; padding: 20px; border-radius: 0 0 5px 5px; }
-            .detail { margin: 10px 0; }
-            .label { font-weight: bold; color: #4b5563; }
-            .value { color: #1f2937; }
-            .footer { margin-top: 20px; font-size: 12px; color: #6b7280; text-align: center; }
-          </style>
+          <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
         </head>
-        <body>
-          <div class="container">
-            <div class="header">
-              <h1>🔴 API Downtime Alert</h1>
-            </div>
-            <div class="content">
-              <p>An API endpoint you're monitoring has gone down:</p>
+        <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; line-height: 1.6; color: #1f2937; margin: 0; padding: 0; background-color: #f3f4f6;">
+          <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f3f4f6; padding: 20px 0;">
+            <tr>
+              <td align="center">
+                <table width="600" cellpadding="0" cellspacing="0" style="max-width: 600px; background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+                  <!-- Header -->
+                  <tr>
+                    <td style="background-color: #fee2e2; border-bottom: 3px solid #dc2626; padding: 16px; text-align: center;">
+                      <h1 style="margin: 0; font-size: 18px; font-weight: 600; color: #dc2626;">🔴 API DOWNTIME ALERT</h1>
+                    </td>
+                  </tr>
+                  <!-- Content -->
+                  <tr>
+                    <td style="padding: 24px;">
+                      <!-- Incident Info -->
+                      <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom: 24px;">
+                        <tr>
+                          <td width="120" style="padding: 8px 0; font-weight: 500; color: #6b7280; vertical-align: top;">Service:</td>
+                          <td style="padding: 8px 0; color: #1f2937;"><strong>${api.name}</strong></td>
+                        </tr>
+                        <tr>
+                          <td width="120" style="padding: 8px 0; font-weight: 500; color: #6b7280; vertical-align: top;">Status:</td>
+                          <td style="padding: 8px 0;">
+                            <span style="display: inline-block; padding: 4px 12px; border-radius: 9999px; font-size: 12px; font-weight: 600; background-color: #fef2f2; color: #dc2626;">Ongoing</span>
+                          </td>
+                        </tr>
+                        <tr>
+                          <td width="120" style="padding: 8px 0; font-weight: 500; color: #6b7280; vertical-align: top;">Incident ID:</td>
+                          <td style="padding: 8px 0; color: #1f2937;">#${incident.id}</td>
+                        </tr>
+                        <tr>
+                          <td width="120" style="padding: 8px 0; font-weight: 500; color: #6b7280; vertical-align: top;">Started:</td>
+                          <td style="padding: 8px 0; color: #1f2937;">${startedAt}</td>
+                        </tr>
+                      </table>
 
-              <div class="detail">
-                <span class="label">API Name:</span>
-                <span class="value">${api.name}</span>
-              </div>
+                      <!-- Divider -->
+                      <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 16px 0;">
 
-              <div class="detail">
-                <span class="label">URL:</span>
-                <span class="value">${api.url}</span>
-              </div>
+                      <!-- Endpoint Details -->
+                      <div style="font-size: 12px; font-weight: 600; color: #6b7280; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 12px; border-bottom: 1px solid #e5e7eb; padding-bottom: 8px;">Endpoint Details</div>
+                      <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom: 16px;">
+                        <tr>
+                          <td width="120" style="padding: 8px 0; font-weight: 500; color: #6b7280; vertical-align: top;">URL:</td>
+                          <td style="padding: 8px 0; color: #1f2937; word-break: break-all;">${api.url}</td>
+                        </tr>
+                        <tr>
+                          <td width="120" style="padding: 8px 0; font-weight: 500; color: #6b7280; vertical-align: top;">Status Code:</td>
+                          <td style="padding: 8px 0; color: #1f2937;"><strong>${statusCodeText}</strong></td>
+                        </tr>
+                        <tr>
+                          <td width="120" style="padding: 8px 0; font-weight: 500; color: #6b7280; vertical-align: top;">Error:</td>
+                          <td style="padding: 8px 0; color: #1f2937;">${errorMessage}</td>
+                        </tr>
+                      </table>
 
-              <div class="detail">
-                <span class="label">Incident ID:</span>
-                <span class="value">#${incident.id}</span>
-              </div>
+                      <!-- Action Box -->
+                      <table width="100%" cellpadding="0" cellspacing="0">
+                        <tr>
+                          <td style="background-color: #fef2f2; border: 1px solid #fecaca; border-radius: 6px; padding: 16px;">
+                            <strong style="color: #dc2626;">ACTION REQUIRED:</strong><br>
+                            Investigate the issue immediately. Check server logs, upstream services, and infrastructure status.
+                          </td>
+                        </tr>
+                      </table>
 
-              <div class="detail">
-                <span class="label">Started At:</span>
-                <span class="value">${new Date(incident.started_at).toLocaleString()}</span>
-              </div>
-
-              <div class="detail">
-                <span class="label">Status:</span>
-                <span class="value">${incident.status}</span>
-              </div>
-
-              <p style="margin-top: 20px;">
-                <strong>Action Required:</strong> Please investigate the issue.
-                The system will continue to monitor and will notify you when the service recovers.
-              </p>
-            </div>
-            <div class="footer">
-              <p>This is an automated alert from Status Monitor</p>
-              <p>Timestamp: ${new Date().toLocaleString()}</p>
-            </div>
-          </div>
+                      <!-- Button -->
+                      <table width="100%" cellpadding="0" cellspacing="0" style="margin-top: 24px;">
+                        <tr>
+                          <td align="center">
+                            <a href="${frontendUrl}" style="display: inline-block; padding: 12px 24px; background-color: #2563eb; color: white; text-decoration: none; border-radius: 6px; font-weight: 500;">View Status Page</a>
+                          </td>
+                        </tr>
+                      </table>
+                    </td>
+                  </tr>
+                  <!-- Footer -->
+                  <tr>
+                    <td style="text-align: center; padding: 16px; font-size: 12px; color: #9ca3af; border-top: 1px solid #e5e7eb;">
+                      This is an automated alert from Status Monitor
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+          </table>
         </body>
       </html>
     `;
 
-    const textContent = `
-API Downtime Alert
+    const textContent = `[ALERT] ${api.name} Down - Incident #${incident.id}
 
-An API endpoint you're monitoring has gone down:
+---
 
-API Name: ${api.name}
-URL: ${api.url}
+🔴 API DOWNTIME ALERT
+
+Service: ${api.name}
+Status: Ongoing
 Incident ID: #${incident.id}
-Started At: ${new Date(incident.started_at).toLocaleString()}
-Status: ${incident.status}
+Started: ${startedAt}
 
-Action Required: Please investigate the issue.
-The system will continue to monitor and will notify you when the service recovers.
+---
+
+ENDPOINT DETAILS:
+URL: ${api.url}
+Status Code: ${statusCodeText}
+Error: ${errorMessage}
+
+ACTION REQUIRED:
+Investigate the issue immediately. Check server logs, upstream services, and infrastructure status.
+
+View Details: ${frontendUrl}
 
 ---
 This is an automated alert from Status Monitor
-Timestamp: ${new Date().toLocaleString()}
     `;
 
     // Send email
@@ -220,8 +272,6 @@ Timestamp: ${new Date().toLocaleString()}
     };
 
     await emailTransporter.sendMail(mailOptions);
-
-    console.log(`   📧 Downtime alert sent to ${recipientEmails}`);
   } catch (error) {
     console.error('Error sending downtime alert email:', error);
   }
@@ -229,8 +279,12 @@ Timestamp: ${new Date().toLocaleString()}
 
 /**
  * Send recovery notification email
+ * @param {object} api - API object with id, name, url, etc.
+ * @param {object} incident - Incident object with details
+ * @param {number} downtimeMinutes - Duration of the downtime in minutes
+ * @param {number|null} currentStatusCode - Current HTTP status code (recovery code, e.g., 200)
  */
-export async function sendRecoveryNotification(api, incident, downtimeMinutes) {
+export async function sendRecoveryNotification(api, incident, downtimeMinutes, currentStatusCode = null) {
   try {
     const notificationSettings = await areNotificationsEnabled();
 
@@ -248,79 +302,144 @@ export async function sendRecoveryNotification(api, incident, downtimeMinutes) {
     const smtpSettings = await getSMTPSettings();
 
     const recipientEmails = notificationSettings.emails.join(', ');
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+    const startedAt = new Date(incident.started_at).toLocaleString();
+    const resolvedAt = new Date(incident.resolved_at || Date.now()).toLocaleString();
 
-    const subject = `🟢 RESOLVED: ${api.name} is back online`;
+    // Build status code info
+    const originalStatusCode = incident.status_code;
+    const recoveryStatusCode = currentStatusCode || api.expected_status_code;
+
+    const subject = `🟢 RESOLVED: ${api.name} is Back Online`;
     const htmlContent = `
       <!DOCTYPE html>
       <html>
         <head>
-          <style>
-            body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-            .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-            .header { background-color: #059669; color: white; padding: 20px; border-radius: 5px 5px 0 0; }
-            .content { background-color: #f9fafb; padding: 20px; border-radius: 0 0 5px 5px; }
-            .detail { margin: 10px 0; }
-            .label { font-weight: bold; color: #4b5563; }
-            .value { color: #1f2937; }
-            .footer { margin-top: 20px; font-size: 12px; color: #6b7280; text-align: center; }
-          </style>
+          <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
         </head>
-        <body>
-          <div class="container">
-            <div class="header">
-              <h1>🟢 API Recovery Notice</h1>
-            </div>
-            <div class="content">
-              <p>Good news! The API endpoint has recovered:</p>
+        <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; line-height: 1.6; color: #1f2937; margin: 0; padding: 0; background-color: #f3f4f6;">
+          <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f3f4f6; padding: 20px 0;">
+            <tr>
+              <td align="center">
+                <table width="600" cellpadding="0" cellspacing="0" style="max-width: 600px; background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+                  <!-- Header -->
+                  <tr>
+                    <td style="background-color: #a7f3d0; border-bottom: 3px solid #059669; padding: 16px; text-align: center;">
+                      <h1 style="margin: 0; font-size: 18px; font-weight: 600; color: #047857;">🟢 SERVICE RECOVERED</h1>
+                    </td>
+                  </tr>
+                  <!-- Content -->
+                  <tr>
+                    <td style="padding: 24px;">
+                      <!-- Incident Info -->
+                      <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom: 20px;">
+                        <tr>
+                          <td width="110" style="padding: 6px 0; font-weight: 500; color: #6b7280; vertical-align: top;">Service:</td>
+                          <td style="padding: 6px 0; color: #1f2937;"><strong>${api.name}</strong></td>
+                        </tr>
+                        <tr>
+                          <td width="110" style="padding: 6px 0; font-weight: 500; color: #6b7280; vertical-align: top;">Incident ID:</td>
+                          <td style="padding: 6px 0; color: #1f2937;">#${incident.id}</td>
+                        </tr>
+                        <tr>
+                          <td width="110" style="padding: 6px 0; font-weight: 500; color: #6b7280; vertical-align: top;">Started:</td>
+                          <td style="padding: 6px 0; color: #1f2937;">${startedAt}</td>
+                        </tr>
+                        <tr>
+                          <td width="110" style="padding: 6px 0; font-weight: 500; color: #6b7280; vertical-align: top;">Resolved:</td>
+                          <td style="padding: 6px 0; color: #1f2937;">${resolvedAt}</td>
+                        </tr>
+                        <tr>
+                          <td width="110" style="padding: 6px 0; font-weight: 500; color: #6b7280; vertical-align: top;">Downtime:</td>
+                          <td style="padding: 6px 0;">
+                            <span style="display: inline-block; background-color: #fef3c7; padding: 4px 10px; border-radius: 4px; color: #92400e; font-weight: 600;">${downtimeMinutes} minute(s)</span>
+                          </td>
+                        </tr>
+                      </table>
 
-              <div class="detail">
-                <span class="label">API Name:</span>
-                <span class="value">${api.name}</span>
-              </div>
+                      <!-- Divider -->
+                      <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 16px 0;">
 
-              <div class="detail">
-                <span class="label">URL:</span>
-                <span class="value">${api.url}</span>
-              </div>
+                      <!-- Endpoint Details -->
+                      <div style="font-size: 11px; font-weight: 600; color: #6b7280; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 12px;">Endpoint Details</div>
+                      <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom: 20px;">
+                        <tr>
+                          <td width="110" style="padding: 6px 0; font-weight: 500; color: #6b7280; vertical-align: top;">URL:</td>
+                          <td style="padding: 6px 0; color: #1f2937; word-break: break-all;">${api.url}</td>
+                        </tr>
+                        <tr>
+                          <td width="110" style="padding: 6px 0; font-weight: 500; color: #6b7280; vertical-align: top;">Original Error:</td>
+                          <td style="padding: 6px 0; color: #1f2937;">${originalStatusCode ? `HTTP ${originalStatusCode}` : 'Connection failed'}</td>
+                        </tr>
+                        <tr>
+                          <td width="110" style="padding: 6px 0; font-weight: 500; color: #6b7280; vertical-align: top;">Current Status:</td>
+                          <td style="padding: 6px 0; color: #1f2937;"><strong>HTTP ${recoveryStatusCode}</strong> (Healthy)</td>
+                        </tr>
+                      </table>
 
-              <div class="detail">
-                <span class="label">Incident ID:</span>
-                <span class="value">#${incident.id}</span>
-              </div>
-
-              <div class="detail">
-                <span class="label">Downtime Duration:</span>
-                <span class="value">${downtimeMinutes} minute(s)</span>
-              </div>
-
-              <div class="detail">
-                <span class="label">Resolved At:</span>
-                <span class="value">${new Date().toLocaleString()}</span>
-              </div>
-
-              <p style="margin-top: 20px;">
-                The service is now responding normally. The incident has been automatically resolved.
-              </p>
-            </div>
-            <div class="footer">
-              <p>This is an automated notification from Status Monitor</p>
-              <p>Timestamp: ${new Date().toLocaleString()}</p>
-            </div>
-          </div>
+                      <!-- Button -->
+                      <table width="100%" cellpadding="0" cellspacing="0">
+                        <tr>
+                          <td align="center">
+                            <a href="${frontendUrl}" style="display: inline-block; padding: 12px 24px; background-color: #2563eb; color: white; text-decoration: none; border-radius: 6px; font-weight: 500;">View Status Page</a>
+                          </td>
+                        </tr>
+                      </table>
+                    </td>
+                  </tr>
+                  <!-- Footer -->
+                  <tr>
+                    <td style="text-align: center; padding: 16px; font-size: 12px; color: #9ca3af; border-top: 1px solid #e5e7eb;">
+                      This is an automated notification from Status Monitor
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+          </table>
         </body>
       </html>
+    `;
+
+    const textContent = `[RESOLVED] ${api.name} Back Online - Incident #${incident.id}
+
+---
+
+🟢 SERVICE RECOVERED
+
+Service: ${api.name}
+Status: Resolved
+Incident ID: #${incident.id}
+Started: ${startedAt}
+Resolved: ${resolvedAt}
+Total Downtime: ${downtimeMinutes} minute(s)
+
+---
+
+ENDPOINT DETAILS:
+URL: ${api.url}
+Original Error: ${originalStatusCode ? `HTTP ${originalStatusCode}` : 'Connection failed'}
+Current Status: HTTP ${recoveryStatusCode} (Healthy)
+
+ALL SYSTEMS OPERATIONAL
+The service is now responding normally. The incident has been automatically resolved.
+
+View Details: ${frontendUrl}
+
+---
+This is an automated notification from Status Monitor
     `;
 
     const mailOptions = {
       from: smtpSettings.smtp_from || `"Status Monitor" <${smtpSettings.smtp_user}>`,
       bcc: recipientEmails,
       subject: subject,
+      text: textContent,
       html: htmlContent,
     };
 
     await emailTransporter.sendMail(mailOptions);
-
-    console.log(`   📧 Recovery notification sent to ${recipientEmails}`);
   } catch (error) {
     console.error('Error sending recovery notification:', error);
   }

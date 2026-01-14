@@ -4,8 +4,10 @@ import { sendWebhook } from './webhookService.js';
 
 /**
  * Auto-create incident when API goes down
+ * @param {object} api - API object with id, name, url, etc.
+ * @param {number|null} statusCode - HTTP status code that caused the failure (null for timeouts/connection failures)
  */
-export async function detectAndCreateIncident(api) {
+export async function detectAndCreateIncident(api, statusCode = null) {
   try {
     // Check if there's already an open incident for this API
     const existingIncident = await query(
@@ -23,16 +25,23 @@ export async function detectAndCreateIncident(api) {
       return;
     }
 
-    // Create new incident
+    // Build description with status code info
+    let description = `Automated incident: ${api.name} (${api.url}) is not responding as expected.`;
+    if (statusCode) {
+      description = `Automated incident: ${api.name} (${api.url}) returned HTTP ${statusCode} (expected ${api.expected_status_code}).`;
+    }
+
+    // Create new incident with status_code
     const incident = await query(
-      `INSERT INTO incidents (api_id, title, description, status, started_at)
-       VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP)
+      `INSERT INTO incidents (api_id, title, description, status, status_code, started_at)
+       VALUES ($1, $2, $3, $4, $5, CURRENT_TIMESTAMP)
        RETURNING *`,
       [
         api.id,
         `${api.name} is down`,
-        `Automated incident: ${api.name} (${api.url}) is not responding as expected.`,
+        description,
         'ongoing',
+        statusCode,
       ]
     );
 
@@ -52,8 +61,10 @@ export async function detectAndCreateIncident(api) {
 
 /**
  * Auto-resolve incident when API comes back up
+ * @param {object} api - API object with id, name, url, etc.
+ * @param {number|null} currentStatusCode - Current HTTP status code (the recovery status code, e.g., 200)
  */
-export async function autoResolveIncident(api) {
+export async function autoResolveIncident(api, currentStatusCode = null) {
   try {
     // Find the most recent open incident for this API
     const openIncident = await query(
@@ -99,11 +110,11 @@ export async function autoResolveIncident(api) {
       [incident.id]
     );
 
-    // Send email recovery notification if enabled
-    await sendRecoveryNotification(api, updatedIncident.rows[0], durationMinutes);
+    // Send email recovery notification if enabled (pass current status code for recovery)
+    await sendRecoveryNotification(api, updatedIncident.rows[0], durationMinutes, currentStatusCode);
 
-    // Send webhook notification for API up
-    await sendWebhook('api_up', api, updatedIncident.rows[0]);
+    // Send webhook notification for API up (pass current status code for recovery)
+    await sendWebhook('api_up', api, updatedIncident.rows[0], currentStatusCode);
 
     return incident;
   } catch (error) {

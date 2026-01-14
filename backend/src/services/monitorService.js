@@ -123,8 +123,11 @@ async function savePingResult(result) {
 
 /**
  * Check for status changes and handle incidents
+ * @param {object} api - API object
+ * @param {string} currentStatus - Current ping status ('success', 'failure', 'timeout')
+ * @param {number|null} statusCode - HTTP status code from the ping (null for timeouts/connection failures)
  */
-async function handleStatusChange(api, currentStatus) {
+async function handleStatusChange(api, currentStatus, statusCode = null) {
   const apiId = api.id;
   const lastStatus = apiLastStatus.get(apiId);
 
@@ -134,7 +137,7 @@ async function handleStatusChange(api, currentStatus) {
   // If this is the first ping AND API is down, create incident
   if (!lastStatus && currentStatus !== 'success') {
     console.log(`🔴 NEW API DOWN: ${api.name} (${api.url})`);
-    await detectAndCreateIncident(api);
+    await detectAndCreateIncident(api, statusCode);
     return;
   }
 
@@ -146,13 +149,13 @@ async function handleStatusChange(api, currentStatus) {
   // Detect UP → DOWN transition (create incident)
   if (lastStatus === 'success' && currentStatus !== 'success') {
     console.log(`🔴 API DOWN: ${api.name} (${api.url})`);
-    await detectAndCreateIncident(api);
+    await detectAndCreateIncident(api, statusCode);
   }
 
   // Detect DOWN → UP transition (resolve incident)
   if (lastStatus !== 'success' && currentStatus === 'success') {
     console.log(`🟢 API UP: ${api.name} (${api.url})`);
-    await autoResolveIncident(api);
+    await autoResolveIncident(api, statusCode);
   }
 }
 
@@ -189,8 +192,8 @@ async function monitorAllAPIs() {
       // Save ping result
       await savePingResult(result);
 
-      // Handle status changes and incidents
-      await handleStatusChange(api, result.status);
+      // Handle status changes and incidents (pass status_code for incident tracking)
+      await handleStatusChange(api, result.status, result.status_code);
 
       // Log result
       const statusIcon = result.status === 'success' ? '✅' : '❌';
