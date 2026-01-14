@@ -273,41 +273,6 @@ VITE_API_URL=http://localhost:5000/api
 
 ---
 
-## 🔄 Updating to Latest Version
-
-To update your production server to the latest version:
-
-```bash
-# 1. Navigate to installation directory
-cd /opt/status-monitor
-
-# 2. Pull latest code
-git pull origin main
-
-# 3. Update backend dependencies
-cd backend
-npm install --production
-
-# 4. Rebuild frontend
-cd ../frontend
-npm install
-npm run build
-
-# 5. Run database migrations (if any)
-cd ..
-PGPASSWORD=your_db_password psql -U your_db_user -d status_monitor -f database/migrations/003_add_incident_status_code.sql
-
-# 6. Restart the application
-pm2 restart status-monitor
-```
-
-**Quick one-liner (after initial setup):**
-```bash
-cd /opt/status-monitor && git pull origin main && cd backend && npm install --production && cd ../frontend && npm install && npm run build && pm2 restart status-monitor
-```
-
----
-
 ## 📘 Advanced Documentation
 
 For manual deployment or advanced configuration options:
