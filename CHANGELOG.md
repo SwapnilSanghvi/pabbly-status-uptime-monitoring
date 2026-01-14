@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-## [1.2.0] - 2025-01-13
+## [1.3.0] - 2025-01-14
 
 ### Added
 
@@ -61,7 +61,7 @@ Added `status_code` field to webhook payloads and incident tracking.
 
 **Migration Required:**
 ```bash
-docker exec -i postgres-db psql -U postgres -d status_monitor < database/migrations/003_add_incident_status_code.sql
+docker exec -i postgres psql -U postgres -d status_monitor < database/migrations/003_add_incident_status_code.sql
 ```
 
 ---
@@ -228,24 +228,59 @@ Executed query { text: 'SELECT * FROM apis...', duration: 5, rows: 10 }
 
 ---
 
-## [1.1.0] - Previous Release
+### Fixed
 
-### Features
-- API Groups for organizing monitored services
-- Drag-and-drop reordering
-- Public/Private API visibility toggle
-- SMTP email notifications
-- Webhook notifications for status changes
-- 90-day uptime tracking with drill-down
+- Service recovery email was not getting sent
+- Layout for Public and Private services toggle enhanced
+- Font size improved for Group header on mobile devices
+- Mobile layout for Groups improved
 
 ---
 
-## [1.0.0] - Initial Release
+## [1.2.0] - 2025-01-01
 
-### Features
-- Real-time API monitoring (configurable intervals)
+### Added
+
+#### API Groups Feature
+Organize monitored services into collapsible categories for better organization.
+
+- Create custom groups to categorize APIs
+- Drag-and-drop APIs between groups
+- Collapsible group sections on status page
+- Default "Ungrouped" category for uncategorized APIs
+- Group display order customization
+
+**Files Changed:**
+- `database/schema.sql` - Added `api_groups` table
+- `database/migrations/002_add_api_groups.sql` - Migration for existing databases
+- `backend/src/routes/admin.js` - Group CRUD endpoints
+- `frontend/src/components/` - Group management UI components
+
+---
+
+## [1.1.0] - 2024-12-30
+
+### Added
+
+- SMTP email notifications for downtime alerts and recovery
+- Webhook notifications for status changes
+- Test webhook functionality
+- Public/Private API visibility toggle
+- 90-day uptime tracking with calendar drill-down
+- Mobile-optimized admin dashboard
+- Custom logo upload
+- Settings page with SMTP configuration
+
+---
+
+## [1.0.0] - 2024-12-15
+
+### Added
+
+- Real-time API monitoring with configurable intervals
 - Public status page
-- Admin dashboard
-- Incident management
-- Uptime statistics and charts
+- Admin dashboard with authentication
+- Incident management and tracking
+- Uptime statistics and response time charts
 - PostgreSQL database backend
+- JWT-based authentication
