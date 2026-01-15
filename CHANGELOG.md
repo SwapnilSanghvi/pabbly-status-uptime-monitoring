@@ -7,6 +7,45 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.3.1] - 2025-01-15
+
+### Fixed
+
+#### Cloudflare 520/525 Connection Errors
+
+Fixed intermittent 520 and 525 errors when monitoring APIs behind Cloudflare by disabling HTTP connection reuse.
+
+**Files Changed:**
+- `backend/src/services/monitorService.js` - Added custom undici Agent with connection reuse disabled
+- `backend/package.json` - Added `undici` dependency
+
+**Root Cause:**
+Node.js native `fetch()` reuses TCP connections by default (HTTP keep-alive). When monitoring APIs behind Cloudflare:
+- Stale connections caused **520 errors** (Cloudflare closed the connection, but client tried to reuse it)
+- Expired SSL sessions caused **525 errors** (SSL handshake failed on reused connection)
+
+**Solution:**
+```javascript
+import { Agent } from 'undici';
+
+const httpAgent = new Agent({
+  keepAliveTimeout: 1,
+  keepAliveMaxTimeout: 1,
+  connections: 10,
+  pipelining: 1,
+});
+
+// Use dispatcher option in fetch
+fetch(url, { dispatcher: httpAgent });
+```
+
+**Benefits:**
+- Eliminates random 520/525 errors for Cloudflare-proxied endpoints
+- Each monitoring request uses a fresh TCP connection
+- Minimal latency impact (~50-100ms) which is negligible for 1-minute intervals
+
+---
+
 ## [1.3.0] - 2025-01-14
 
 ### Added
