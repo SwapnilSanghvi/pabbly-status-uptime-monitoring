@@ -1,6 +1,16 @@
 import cron from 'node-cron';
+import { Agent } from 'undici';
 import { query } from '../config/database.js';
 import { detectAndCreateIncident, autoResolveIncident } from './incidentService.js';
+
+// Create a custom HTTP agent that disables connection reuse
+// This prevents stale connection issues with Cloudflare (520/525 errors)
+const httpAgent = new Agent({
+  keepAliveTimeout: 1,
+  keepAliveMaxTimeout: 1,
+  connections: 10,
+  pipelining: 1,
+});
 
 // Track last status for each API to detect status changes
 const apiLastStatus = new Map();
@@ -43,6 +53,7 @@ async function pingAPI(api) {
         'Accept': '*/*',
       },
       signal: controller.signal,
+      dispatcher: httpAgent,
     });
 
     clearTimeout(timeout);
